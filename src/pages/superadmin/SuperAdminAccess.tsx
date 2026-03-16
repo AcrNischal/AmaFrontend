@@ -98,9 +98,24 @@ export default function SuperAdminAccess() {
                 fetchUsers(),
                 fetchBranches()
             ]);
-            setUsersList(usersData.filter((u: any) => u.user_type === 'BRANCH_MANAGER' || u.user_type === 'ADMIN'));
-            setBranchesList(branchesData.data || []);
+            
+            const branches = branchesData.data || branchesData || [];
+            const users = Array.isArray(usersData) ? usersData : [];
+            
+            const managers = users
+                .filter((u: any) => u.user_type === 'BRANCH_MANAGER' || u.user_type === 'ADMIN')
+                .map((u: any) => {
+                    const branch = branches.find((b: any) => b.id === u.branch);
+                    return {
+                        ...u,
+                        branch_name: branch ? branch.name : 'Global HQ'
+                    };
+                });
+                
+            setUsersList(managers);
+            setBranchesList(branches);
         } catch (err: any) {
+            console.error("Load error:", err);
             toast.error("Failed to load data", { description: err.message });
         } finally {
             setLoading(false);

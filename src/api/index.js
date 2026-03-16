@@ -359,7 +359,8 @@ export async function fetchUsers() {
   const res = await apiFetch("/api/users/");
   const data = await safeJson(res);
   if (!res.ok) throw new Error(data?.message || "Failed to fetch users");
-  return data.users;
+  // Be robust with different response structures
+  return data.users || data.data || (Array.isArray(data) ? data : []);
 }
 
 export async function createUser(userData) {
@@ -369,7 +370,7 @@ export async function createUser(userData) {
   });
   const data = await safeJson(res);
   if (!res.ok) throw new Error(data?.message || JSON.stringify(data?.errors) || "Failed to create user");
-  return data.user;
+  return data.user || data.data || data;
 }
 
 export async function updateUser(id, userData) {
@@ -379,7 +380,7 @@ export async function updateUser(id, userData) {
   });
   const data = await safeJson(res);
   if (!res.ok) throw new Error(data?.message || JSON.stringify(data?.errors) || "Failed to update user");
-  return data.user;
+  return data.user || data.data || data;
 }
 
 export async function deleteUser(id) {
