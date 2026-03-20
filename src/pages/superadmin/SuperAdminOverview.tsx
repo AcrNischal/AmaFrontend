@@ -62,15 +62,17 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { fetchBranches, createBranch, createUser, fetchDashboardDetails } from "../../api/index.js";
+import { fetchBranches, createBranch, createUser, fetchDashboardDetails, updateBranch } from "../../api/index.js";
 
 interface Branch {
     id: number;
     name: string;
     location: string;
     status?: string;
+    is_active?: boolean;
     branch_manager?: {
         id: number;
         username: string;
@@ -116,7 +118,7 @@ export default function SuperAdminOverview() {
     const [sseConnected, setSSEConnected] = useState(false);
 
     // Filter states
-    const [timeframe, setTimeframe] = useState("monthly");
+    const [timeframe, setTimeframe] = useState("daily");
     const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({
         from: undefined,
         to: undefined
@@ -180,6 +182,18 @@ export default function SuperAdminOverview() {
             toast.error(err.message || "Failed to load dashboard data");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleToggleBranchStatus = async (branch: any, checked: boolean) => {
+        try {
+            const data = await updateBranch(branch.id, { is_active: checked });
+            if (data.success) {
+                setBranches(prev => prev.map(b => b.id === branch.id ? { ...b, is_active: checked } : b));
+                toast.success(`Branch ${checked ? 'activated' : 'deactivated'} successfully`);
+            }
+        } catch (error: any) {
+            toast.error(error.message || "Failed to update branch status");
         }
     };
 
@@ -484,9 +498,10 @@ export default function SuperAdminOverview() {
                     <table className="w-full">
                         <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
                             <tr>
-                                <th className="px-6 py-4 text-left">Branch</th>
-                                <th className="px-6 py-4 text-left">Manager</th>
-                                <th className="px-6 py-4 text-right">Revenue</th>
+                                <th className="px-6 py-4 text-left">Branch Details</th>
+                                <th className="px-6 py-4 text-left">Leadership</th>
+                                <th className="px-6 py-4 text-left">Status</th>
+                                <th className="px-6 py-4 text-right">Revenue (Cumulative)</th>
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -503,6 +518,21 @@ export default function SuperAdminOverview() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-5 font-medium text-slate-600">{branch.branch_manager?.username || "Not Assigned"}</td>
+                                    <td className="px-6 py-5">
+                                        <div className="flex items-center gap-3">
+                                            <Switch
+                                                checked={branch.is_active}
+                                                onCheckedChange={(checked) => handleToggleBranchStatus(branch, checked)}
+                                                className="data-[state=checked]:bg-emerald-500"
+                                            />
+                                            <span className={cn(
+                                                "text-[10px] font-black uppercase tracking-widest",
+                                                branch.is_active ? "text-emerald-600" : "text-slate-400"
+                                            )}>
+                                                {branch.is_active ? "Active" : "Off"}
+                                            </span>
+                                        </div>
+                                    </td>
                                     <td className="px-6 py-5 text-right font-black">Rs.{(parseFloat(branch.revenue as any) || 0).toLocaleString()}</td>
                                     <td className="px-6 py-5 text-right">
                                         <Button size="sm" onClick={() => handleAccessBranch(branch)} className="h-9 px-4 rounded-xl font-black uppercase text-[10px]">Access <ExternalLink className="h-3 w-3 ml-2" /></Button>

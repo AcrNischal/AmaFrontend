@@ -53,7 +53,7 @@ export default function SuperAdminAnalytics() {
     const [sseConnected, setSSEConnected] = useState(false);
 
     // Filter states
-    const [timeframe, setTimeframe] = useState("monthly");
+    const [timeframe, setTimeframe] = useState("daily");
     const [dateRange, setDateRange] = useState<{ from: Date | undefined, to: Date | undefined }>({
         from: undefined,
         to: undefined
