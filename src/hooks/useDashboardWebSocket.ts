@@ -1,13 +1,11 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { WS_BASE_URL } from "../api/config";
-
-type MessageHandler = (data: { type: string; branch_id?: string; message?: string }) => void;
 
 export function useDashboardWebSocket(branchId: number | string | null | undefined, onUpdate: () => void) {
     const socketRef = useRef<WebSocket | null>(null);
+    const [isConnected, setIsConnected] = useState(false);
 
     const connect = useCallback(() => {
-        // If branchId is null/undefined, it's global
         const wsUrl = branchId
             ? `${WS_BASE_URL}/ws/dashboard/${branchId}/`
             : `${WS_BASE_URL}/ws/dashboard/`;
@@ -16,32 +14,30 @@ export function useDashboardWebSocket(branchId: number | string | null | undefin
         const socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
-            console.log(`[WS] Dashboard socket connected successfully (${branchId ? 'branch:' + branchId : 'global'})`);
+            console.log(`[WS] Dashboard socket connected successfully`);
+            setIsConnected(true);
         };
 
         socket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
                 if (data.type === "dashboard_update") {
-                    console.log("[WS] Dashboard update signal received, triggering UI refresh...");
+                    console.log("[WS] Dashboard update received");
                     onUpdate();
                 }
             } catch (err) {
-                console.error("[WS] Failed to parse dashboard message:", err);
+                console.error("[WS] Failed to parse message:", err);
             }
         };
 
-        socket.onclose = (event) => {
-            if (event.wasClean) {
-                console.log(`[WS] Dashboard socket closed cleanly, code=${event.code} reason=${event.reason}`);
-            } else {
-                console.warn(`[WS] Dashboard socket connection died (code: ${event.code}). Retrying in 5s...`);
-            }
+        socket.onclose = () => {
+            setIsConnected(false);
+            console.warn(`[WS] Socket connection closed. Retrying in 5s...`);
             setTimeout(connect, 5000);
         };
 
         socket.onerror = (err) => {
-            console.error("[WS] Dashboard socket encountered an error:", err);
+            console.error("[WS] Socket error:", err);
             socket.close();
         };
 
@@ -50,13 +46,8 @@ export function useDashboardWebSocket(branchId: number | string | null | undefin
 
     useEffect(() => {
         connect();
-
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.close();
-            }
-        };
+        return () => socketRef.current?.close();
     }, [connect]);
 
-    return socketRef;
+    return { socketRef, isConnected };
 }

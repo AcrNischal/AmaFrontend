@@ -115,7 +115,6 @@ export default function SuperAdminOverview() {
     const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [sseConnected, setSSEConnected] = useState(false);
 
     // Filter states
     const [timeframe, setTimeframe] = useState("daily");
@@ -138,10 +137,9 @@ export default function SuperAdminOverview() {
     // WebSocket: Real-time dashboard updates
     const handleWSUpdate = useCallback(() => {
         loadData();
-        setSSEConnected(true);
     }, []);
 
-    useDashboardWebSocket(null, handleWSUpdate);
+    const { isConnected: wsConnected } = useDashboardWebSocket(null, handleWSUpdate);
 
     useEffect(() => {
         loadData();
@@ -254,9 +252,9 @@ export default function SuperAdminOverview() {
                 <div>
                     <h1 className="text-3xl font-black tracking-tighter text-slate-900">ENTERPRISE OVERVIEW</h1>
                     <div className="flex items-center gap-2 mt-1">
-                        <div className={cn("h-1.5 w-1.5 rounded-full", sseConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500 animate-pulse")} />
-                        <span className={cn("text-[10px] font-black uppercase tracking-widest", sseConnected ? "text-emerald-500" : "text-amber-500")}>
-                            {sseConnected ? "Network Active" : "WS Initializing..."}
+                        <div className={cn("h-1.5 w-1.5 rounded-full", wsConnected ? "bg-emerald-500 animate-pulse" : "bg-slate-300")} />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            {wsConnected ? "Network Verified" : "WS Initializing..."}
                         </span>
                         <span className="text-slate-200 mx-2">|</span>
                         <span className="text-[10px] font-black uppercase tracking-widest text-primary capitaize">{timeframe} Snapshot</span>
