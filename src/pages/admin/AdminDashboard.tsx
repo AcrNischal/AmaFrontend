@@ -189,10 +189,10 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-3">
           <div className={cn(
             "flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
-            sseConnected ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-slate-100 text-slate-400 border border-slate-200"
+            sseConnected ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-amber-500/10 text-amber-600 border border-amber-500/20"
           )}>
-            <div className={cn("h-1.5 w-1.5 rounded-full", sseConnected ? "bg-emerald-500 animate-pulse" : "bg-slate-400")} />
-            {sseConnected ? "Live" : "WebSocket"}
+            <div className={cn("h-1.5 w-1.5 rounded-full", sseConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500 animate-pulse")} />
+            {sseConnected ? "Live Feed" : "WS Establishing..."}
           </div>
 
           {/* Timeframe Selector */}

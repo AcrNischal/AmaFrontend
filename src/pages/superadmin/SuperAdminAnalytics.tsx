@@ -110,10 +110,10 @@ export default function SuperAdminAnalytics() {
                         <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase">Global Analytics</h1>
                         <div className={cn(
                             "px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border flex items-center gap-1.5",
-                            sseConnected ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-400 border-slate-200"
+                            sseConnected ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100"
                         )}>
-                            <div className={cn("h-1 w-1 rounded-full", sseConnected ? "bg-emerald-500 animate-pulse" : "bg-slate-300")} />
-                            {sseConnected ? "Live" : "Offline"}
+                            <div className={cn("h-1 w-1 rounded-full", sseConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500 animate-pulse")} />
+                            {sseConnected ? "Live Feed" : "Syncing..."}
                         </div>
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Enterprise metrics for {timeframe} performance cycle</p>

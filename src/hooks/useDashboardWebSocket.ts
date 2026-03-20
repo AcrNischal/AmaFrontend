@@ -12,17 +12,18 @@ export function useDashboardWebSocket(branchId: number | string | null | undefin
             ? `${WS_BASE_URL}/ws/dashboard/${branchId}/`
             : `${WS_BASE_URL}/ws/dashboard/`;
 
+        console.log(`[WS] Attempting to connect to ${wsUrl}`);
         const socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
-            console.log(`[WS] Dashboard socket connected (${branchId ? 'branch:' + branchId : 'global'})`);
+            console.log(`[WS] Dashboard socket connected successfully (${branchId ? 'branch:' + branchId : 'global'})`);
         };
 
         socket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
                 if (data.type === "dashboard_update") {
-                    console.log("[WS] Dashboard update received, triggering refresh...");
+                    console.log("[WS] Dashboard update signal received, triggering UI refresh...");
                     onUpdate();
                 }
             } catch (err) {
@@ -30,12 +31,17 @@ export function useDashboardWebSocket(branchId: number | string | null | undefin
             }
         };
 
-        socket.onclose = () => {
-            console.log("[WS] Dashboard socket closed, reconnecting in 3s...");
-            setTimeout(connect, 3000);
+        socket.onclose = (event) => {
+            if (event.wasClean) {
+                console.log(`[WS] Dashboard socket closed cleanly, code=${event.code} reason=${event.reason}`);
+            } else {
+                console.warn(`[WS] Dashboard socket connection died (code: ${event.code}). Retrying in 5s...`);
+            }
+            setTimeout(connect, 5000);
         };
 
-        socket.onerror = () => {
+        socket.onerror = (err) => {
+            console.error("[WS] Dashboard socket encountered an error:", err);
             socket.close();
         };
 
