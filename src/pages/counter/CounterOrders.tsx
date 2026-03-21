@@ -48,7 +48,7 @@ export default function CounterOrders() {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
-    const [statusFilter, setStatusFilter] = useState<"ALL" | "PAID" | "UNPAID" | "PARTIAL" | "PENDING">("ALL");
+    const [statusFilter, setStatusFilter] = useState<"ALL" | "PAID" | "UNPAID" | "PARTIAL" | "PENDING" | "WAITER RECEIVED">("ALL");
 
     // Payment States
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -484,6 +484,9 @@ export default function CounterOrders() {
                         </DropdownMenuItem>
                         <DropdownMenuItem className="h-10 rounded-lg text-amber-600" onClick={() => setStatusFilter("PARTIAL")}>
                             Partial
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="h-10 rounded-lg text-indigo-600" onClick={() => setStatusFilter("WAITER RECEIVED")}>
+                            Waiter Received
                         </DropdownMenuItem>
                         <DropdownMenuItem className="h-10 rounded-lg text-red-600" onClick={() => setStatusFilter("UNPAID")}>
                             Unpaid
