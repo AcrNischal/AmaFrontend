@@ -372,7 +372,12 @@ export default function CounterOrders() {
                 (order.invoice_number?.toLowerCase() || "").includes(query) ||
                 (order.customer_name?.toLowerCase() || "").includes(query) ||
                 (String(order.table_no || "")).includes(query) ||
-                (order.invoice_description?.toLowerCase() || "").includes(query)
+                (order.invoice_description?.toLowerCase() || "").includes(query) ||
+                (order.created_by_name?.toLowerCase() || "").includes(query) ||
+                (order.items || []).some((item: any) => {
+                    const productName = item.product_name || productsMap[String(item.product)]?.name || "";
+                    return productName.toLowerCase().includes(query);
+                })
             );
         }
 
