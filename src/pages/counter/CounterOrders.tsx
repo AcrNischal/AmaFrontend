@@ -127,34 +127,23 @@ export default function CounterOrders() {
     }, [loadInvoices, loadProducts]);
 
     // Play notification sound
-    const playNotificationSound = useCallback(() => {
-        try {
-            const audio = new Audio("/noti.mp3");
-            audio.play().catch(() => {
-                // Autoplay may be blocked by browser until user interaction
-            });
-        } catch {
-            // Ignore audio errors
-        }
-    }, []);
+
 
     // WebSocket: auto-refresh when invoice created or status updated
     useOrdersWebSocket(
         useCallback(
             (data) => {
                 if (data.type === "invoice_created") {
-                    // New order - play sound
-                    playNotificationSound();
+                    // New order - auto-refresh list
                     loadInvoices();
                 } else if (data.type === "invoice_updated" && data.status === "READY") {
-                    // Order ready - play sound
-                    playNotificationSound();
+                    // Order ready - auto-refresh list
                     loadInvoices();
                 } else if (data.type === "invoice_updated") {
                     loadInvoices();
                 }
             },
-            [loadInvoices, playNotificationSound]
+            [loadInvoices]
         )
     );
 
