@@ -30,7 +30,8 @@ import {
     Soup,
     Pencil,
     LayoutDashboard,
-    IndianRupee
+    IndianRupee,
+    Keyboard
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -89,6 +90,9 @@ export default function CounterPOS() {
     const [selectedFloor, setSelectedFloor] = useState<any>(null);
     const [tableNo, setTableNo] = useState<string>("1");
     const [paymentMethod, setPaymentMethod] = useState<"cash" | "qr" | "online" | null>(null);
+    const [activeKeypadField, setActiveKeypadField] = useState<'cash' | 'discount' | 'customer' | 'productSearch' | 'table' | null>(null);
+    const [showKeypad, setShowKeypad] = useState(false);
+    const [customerSearch, setCustomerSearch] = useState("");
     const [cashReceived, setCashReceived] = useState("");
     const [paidAmount, setPaidAmount] = useState(0);
     const [dueAmount, setDueAmount] = useState(0);
@@ -600,6 +604,10 @@ export default function CounterPOS() {
                                 </button>
                                 <Input
                                     value={tableNo}
+                                    onFocus={() => {
+                                        setActiveKeypadField('table');
+                                        setShowKeypad(true);
+                                    }}
                                     onChange={(e) => setTableNo(e.target.value)}
                                     className="w-10 text-center font-bold border-none bg-transparent h-8 focus-visible:ring-0 text-sm p-0"
                                 />
@@ -624,6 +632,10 @@ export default function CounterPOS() {
                                 placeholder="Search products..."
                                 className="pl-12 h-12 md:h-14 text-base md:text-lg rounded-2xl border-2 border-slate-200 focus:border-primary bg-white transition-all shadow-sm focus:shadow-md"
                                 value={searchQuery}
+                                onFocus={() => {
+                                    setActiveKeypadField('productSearch');
+                                    setShowKeypad(true);
+                                }}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
@@ -647,7 +659,7 @@ export default function CounterPOS() {
 
                     {/* Product Grid */}
                     <div className="flex-1 overflow-y-auto pt-2 pb-10 px-2 custom-scrollbar -ml-2 -mr-2">
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
                             {filteredItems.map(item => (
                                 <button
                                     key={item.id}
@@ -759,10 +771,25 @@ export default function CounterPOS() {
                 )}
             </main>
 
-            {/* Checkout Dialog */}
-            <Dialog open={showCheckoutModal} onOpenChange={setShowCheckoutModal}>
-                <DialogContent className="max-w-[95vw] sm:max-w-[700px] p-0 overflow-hidden border-none shadow-3xl rounded-2xl md:rounded-[2.5rem]">
-                    <div className="flex flex-col md:flex-row h-auto md:h-[600px] max-h-[90vh]">
+            {/* Checkout Dialog - Non-modal to allow external keyboard interaction */}
+            <Dialog open={showCheckoutModal} onOpenChange={setShowCheckoutModal} modal={false}>
+                {showCheckoutModal && (
+                    <div 
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[40] animate-in fade-in duration-300" 
+                        onClick={() => setShowCheckoutModal(false)}
+                    />
+                )}
+                <DialogContent 
+                    onInteractOutside={(e) => {
+                        // Prevent closing if interacting with the keyboard
+                        const target = e.target as HTMLElement;
+                        if (target?.closest('.global-keyboard')) {
+                            e.preventDefault();
+                        }
+                    }}
+                    className="max-w-[95vw] md:max-w-[750px] p-0 overflow-hidden border-none shadow-3xl rounded-2xl md:rounded-[2.5rem] z-[50]"
+                >
+                    <div className="flex flex-col md:flex-row h-auto md:h-[650px] max-h-[90vh]">
                         {/* Checkout Info */}
                         <div className="flex-1 p-6 md:p-10 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar">
                             <div>
@@ -776,6 +803,12 @@ export default function CounterPOS() {
                                     <CustomerSelector
                                         selectedCustomerId={customer?.id}
                                         onSelect={(c) => setCustomer(c)}
+                                        searchTerm={customerSearch}
+                                        onSearchChange={(val) => setCustomerSearch(val)}
+                                        onFocus={() => {
+                                            setActiveKeypadField('customer');
+                                            setShowKeypad(true);
+                                        }}
                                     />
                                 </div>
 
@@ -821,8 +854,15 @@ export default function CounterPOS() {
                                                     max="100"
                                                     placeholder="0"
                                                     value={discountPercent || ""}
+                                                    onFocus={() => {
+                                                        setActiveKeypadField('discount');
+                                                        setShowKeypad(true);
+                                                    }}
                                                     onChange={(e) => setDiscountPercent(Math.min(100, Math.max(0, Number(e.target.value))))}
-                                                    className="h-11 pl-4 pr-8 font-bold"
+                                                    className={cn(
+                                                        "h-10 pl-4 pr-8 font-bold transition-all",
+                                                        activeKeypadField === 'discount' && "border-primary ring-2 ring-primary/10 shadow-sm"
+                                                    )}
                                                 />
                                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
                                             </div>
@@ -849,21 +889,33 @@ export default function CounterPOS() {
                         </div>
 
                         {/* Payment Processing */}
-                        <div className="w-full md:w-[300px] bg-slate-50 border-t md:border-l p-6 md:p-8 flex flex-col justify-between gap-6">
+                        <div className="w-full md:w-[320px] bg-slate-50 border-t md:border-l p-4 md:p-6 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
                             {paymentMethod === 'cash' ? (
-                                <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-                                    <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Cash Details</Label>
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase">Total Payable</p>
-                                        <p className="text-2xl font-black text-slate-800">Rs.{total.toFixed(2)}</p>
+                                <div className="space-y-3 animate-in fade-in slide-in-from-right-4">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cash Details</Label>
+                                    <div className="flex items-center justify-between bg-white p-3 rounded-xl border-2 border-slate-100">
+                                        <div>
+                                            <p className="text-[9px] text-slate-400 font-bold uppercase">Payable</p>
+                                            <p className="text-lg font-black text-slate-800 leading-none">Rs.{total.toFixed(2)}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <Label className="text-[9px] text-slate-400 font-bold uppercase">Received</Label>
+                                            <p className="text-lg font-black text-primary leading-none">Rs.{cashReceived || "0"}</p>
+                                        </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] text-slate-400 font-bold uppercase">Amount Received</Label>
+                                    <div className="space-y-1 relative">
                                         <Input
                                             type="number"
                                             placeholder="0.00"
-                                            className="h-14 text-2xl font-black text-center border-2 border-primary/20 focus:border-primary"
+                                            className={cn(
+                                                "h-11 text-xl font-black text-center border-2 transition-all",
+                                                activeKeypadField === 'cash' ? "border-primary ring-2 ring-primary/5 shadow-inner" : "border-primary/10"
+                                            )}
                                             value={cashReceived}
+                                            onFocus={() => {
+                                                setActiveKeypadField('cash');
+                                                setShowKeypad(true);
+                                            }}
                                             min="0"
                                             max="100000"
                                             onKeyDown={(e) => {
@@ -908,10 +960,12 @@ export default function CounterPOS() {
                                             autoFocus
                                         />
                                     </div>
+
+                                    {/* Universal Global Keyboard will float outside */}
                                     {cashReceived && parseFloat(cashReceived) >= total && (
-                                        <div className="bg-success/10 p-4 rounded-2xl border border-success/20 animate-in zoom-in-95">
-                                            <p className="text-[10px] uppercase font-black text-success/60">Change to return</p>
-                                            <p className="text-2xl font-black text-success">Rs.{(parseFloat(cashReceived) - total).toFixed(2)}</p>
+                                        <div className="bg-success/5 p-2 rounded-xl border border-success/10 animate-in zoom-in-95">
+                                            <p className="text-[8px] uppercase font-black text-success/60">Change</p>
+                                            <p className="text-lg font-black text-success">Rs.{(parseFloat(cashReceived) - total).toFixed(2)}</p>
                                         </div>
                                     )}
                                 </div>
@@ -1125,9 +1179,21 @@ export default function CounterPOS() {
                 </DialogContent>
             </Dialog>
 
-            {/* Quantity Edit Dialog */}
-            <Dialog open={showQtyDialog} onOpenChange={setShowQtyDialog}>
-                <DialogContent className="max-w-[320px] p-6 rounded-[2rem] border-none shadow-3xl">
+            {/* Quantity Edit Dialog - Non-modal to avoid focus issues */}
+            <Dialog open={showQtyDialog} onOpenChange={setShowQtyDialog} modal={false}>
+                {showQtyDialog && (
+                    <div 
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[40] animate-in fade-in duration-300" 
+                        onClick={() => setShowQtyDialog(false)}
+                    />
+                )}
+                <DialogContent 
+                    onInteractOutside={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target?.closest('.global-keyboard')) e.preventDefault();
+                    }}
+                    className="max-w-[320px] p-6 rounded-[2rem] border-none shadow-3xl z-[50]"
+                >
                     <div className="text-center space-y-4">
                         <div className="space-y-1">
                             <h3 className="text-lg font-black text-slate-800 line-clamp-1">{qtyEditItem?.item.name}</h3>
@@ -1176,6 +1242,186 @@ export default function CounterPOS() {
                     </div>
                 </DialogContent>
             </Dialog>
+            {/* Global Floating Virtual Keyboard */}
+            {showKeypad && activeKeypadField && (
+                <div 
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="global-keyboard fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md border-t-2 border-primary/20 shadow-[0_-15px_40px_-10px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-full duration-300 p-2 md:p-3 pointer-events-auto"
+                >
+                    <div className="max-w-4xl mx-auto">
+                        <div className="flex items-center justify-between mb-2 px-1">
+                            <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-primary">
+                                    {activeKeypadField === 'cash' ? 'Cash Received' : 
+                                     activeKeypadField === 'discount' ? 'Discount %' : 
+                                     activeKeypadField === 'customer' ? 'Customer Search' : 
+                                     activeKeypadField === 'productSearch' ? 'Product Search' : 
+                                     activeKeypadField === 'table' ? 'Table Number' : 'Virtual Keyboard'}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                        if (activeKeypadField === 'customer') setCustomerSearch("");
+                                        else if (activeKeypadField === 'productSearch') setSearchQuery("");
+                                        else if (activeKeypadField === 'cash') setCashReceived("");
+                                        else if (activeKeypadField === 'discount') setDiscountPercent(0);
+                                        else if (activeKeypadField === 'table') setTableNo("1");
+                                    }}
+                                    className="h-7 px-2 text-[9px] font-black uppercase text-slate-400 hover:text-destructive"
+                                >
+                                    Clear
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                        setShowKeypad(false);
+                                        (document.activeElement as HTMLElement)?.blur();
+                                    }}
+                                    className="h-6 w-6 rounded-full shadow-inner"
+                                >
+                                    <X className="h-3 w-3" />
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Keyboard Layouts */}
+                        {(activeKeypadField === 'customer' || activeKeypadField === 'productSearch') ? (
+                            <div className="space-y-1 select-none">
+                                {[
+                                    '1234567890',
+                                    'QWERTYUIOP',
+                                    'ASDFGHJKL',
+                                    'ZXCVBNM'
+                                ].map((row, rIdx) => (
+                                    <div key={rIdx} className="flex justify-center gap-1">
+                                        {row.split('').map(char => (
+                                            <Button
+                                                key={char}
+                                                variant="outline"
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                className="h-9 md:h-11 min-w-[30px] md:min-w-[40px] flex-1 md:flex-none text-xs md:text-sm font-bold rounded-lg border shadow-sm active:scale-90 bg-white hover:border-primary/30 transition-all p-0"
+                                                onClick={() => {
+                                                    const setter = activeKeypadField === 'customer' ? setCustomerSearch : setSearchQuery;
+                                                    setter(prev => prev + char);
+                                                }}
+                                            >
+                                                {char}
+                                            </Button>
+                                        ))}
+                                        {rIdx === 3 && (
+                                            <Button
+                                                variant="outline"
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                className="h-9 md:h-11 px-2 md:px-4 text-xs md:text-sm font-bold rounded-lg border-2 border-primary/20 bg-primary/5 text-primary active:scale-90"
+                                                onClick={() => {
+                                                    const setter = activeKeypadField === 'customer' ? setCustomerSearch : setSearchQuery;
+                                                    setter(prev => prev.slice(0, -1));
+                                                }}
+                                            >
+                                                ⌫
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+                                <div className="flex justify-center gap-1.5 mt-1">
+                                    <Button
+                                        variant="outline"
+                                        onMouseDown={(e) => e.preventDefault()}
+                                        className="h-9 md:h-11 flex-1 max-w-[400px] text-[10px] md:text-xs font-black rounded-lg border bg-slate-50 active:scale-95 uppercase tracking-widest"
+                                        onClick={() => {
+                                            const setter = activeKeypadField === 'customer' ? setCustomerSearch : setSearchQuery;
+                                            setter(prev => prev + " ");
+                                        }}
+                                    >
+                                        Space
+                                    </Button>
+                                    <Button
+                                        onMouseDown={(e) => e.preventDefault()}
+                                        className="h-9 md:h-11 px-4 md:px-8 text-[10px] md:text-xs font-black rounded-lg bg-primary text-white shadow-lg active:scale-95 uppercase tracking-widest"
+                                        onClick={() => {
+                                            setShowKeypad(false);
+                                            (document.activeElement as HTMLElement)?.blur();
+                                        }}
+                                    >
+                                        Done
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="max-w-[280px] md:max-w-md mx-auto grid grid-cols-3 gap-1.5 md:gap-2">
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, "00", 0, "⌫"].map((key) => (
+                                    <Button
+                                        key={key.toString()}
+                                        variant="outline"
+                                        onMouseDown={(e) => e.preventDefault()}
+                                        className={cn(
+                                            "h-10 md:h-12 text-base md:text-xl font-black rounded-xl transition-all active:scale-90 bg-white hover:bg-slate-50 border shadow-sm p-0",
+                                            key === "⌫" ? "text-destructive border-destructive/10 bg-destructive/5" : "hover:border-primary/30"
+                                        )}
+                                        onClick={() => {
+                                            if (activeKeypadField === 'cash') {
+                                                if (key === "⌫") setCashReceived(prev => (prev.toString().length > 0 ? prev.toString().slice(0, -1) : ""));
+                                                else if (key === "00") setCashReceived(prev => {
+                                                    const newVal = `${prev}00`;
+                                                    return parseFloat(newVal) <= 100000 ? newVal : prev;
+                                                });
+                                                else setCashReceived(prev => {
+                                                    const current = prev.toString();
+                                                    const newVal = current === "0" ? key.toString() : `${current}${key}`;
+                                                    return parseFloat(newVal) <= 100000 ? newVal : prev;
+                                                });
+                                            } else if (activeKeypadField === 'discount') {
+                                                if (key === "⌫") setDiscountPercent(prev => {
+                                                    const current = prev.toString();
+                                                    const newVal = current.length > 1 ? parseInt(current.slice(0, -1)) : 0;
+                                                    return isNaN(newVal) ? 0 : newVal;
+                                                });
+                                                else if (key === "00") setDiscountPercent(prev => {
+                                                    const newVal = parseInt(`${prev}00`);
+                                                    return isNaN(newVal) ? 0 : Math.min(100, newVal);
+                                                });
+                                                else setDiscountPercent(prev => {
+                                                    const current = prev.toString();
+                                                    const newVal = parseInt(current === "0" ? key.toString() : `${current}${key}`);
+                                                    return isNaN(newVal) ? 0 : Math.min(100, newVal);
+                                                });
+                                            } else if (activeKeypadField === 'table') {
+                                                if (key === "⌫") setTableNo(prev => (prev.toString().length > 1 ? prev.toString().slice(0, -1) : "1"));
+                                                else if (key === "00") return; // Table no shouldn't have 00 usually
+                                                else setTableNo(prev => {
+                                                    const current = prev.toString();
+                                                    const newVal = current === "1" ? key.toString() : `${current}${key}`;
+                                                    const max = selectedFloor?.table_count || 100;
+                                                    return !isNaN(parseInt(newVal)) && parseInt(newVal) <= max ? newVal : prev;
+                                                });
+                                            }
+                                        }}
+                                    >
+                                        {key}
+                                    </Button>
+                                ))}
+                                <Button
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    className="col-span-3 h-10 md:h-12 text-xs md:text-sm font-black rounded-xl bg-primary text-white shadow-lg active:scale-95 uppercase tracking-widest"
+                                    onClick={() => {
+                                        setShowKeypad(false);
+                                        (document.activeElement as HTMLElement)?.blur();
+                                    }}
+                                >
+                                    Confirm
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

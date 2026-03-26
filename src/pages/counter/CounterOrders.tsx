@@ -65,6 +65,10 @@ export default function CounterOrders() {
     const [showChangePassword, setShowChangePassword] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
 
+    // Global Keyboard State
+    const [showKeypad, setShowKeypad] = useState(false);
+    const [activeKeypadField, setActiveKeypadField] = useState<'search' | 'payment' | null>(null);
+
     useEffect(() => {
         if (showReceipt && autoPrint) {
             const timer = setTimeout(() => {
@@ -150,7 +154,14 @@ export default function CounterOrders() {
     const handlePayOpen = (order: any) => {
         setSelectedOrder(order);
         setPaymentAmount(order.due_amount || (order.total_amount - (order.paid_amount || 0)));
-        setPaymentMethod("CASH");
+        
+        // Pick a sensitive default for waiter-handled orders
+        if (order.received_by_waiter && !order.received_by_counter && order.payment_methods?.length > 0) {
+            setPaymentMethod(order.payment_methods[0] as any);
+        } else {
+            setPaymentMethod("CASH");
+        }
+        
         setPaymentNotes("");
         setActiveTab("payment");
         setShowDetailModal(true);
@@ -166,7 +177,14 @@ export default function CounterOrders() {
     const handleRowClick = (order: any) => {
         setSelectedOrder(order);
         setPaymentAmount(order.due_amount || (order.total_amount - (order.paid_amount || 0)));
-        setPaymentMethod("CASH");
+        
+        // Pick a sensitive default for waiter-handled orders
+        if (order.received_by_waiter && !order.received_by_counter && order.payment_methods?.length > 0) {
+            setPaymentMethod(order.payment_methods[0] as any);
+        } else {
+            setPaymentMethod("CASH");
+        }
+        
         setPaymentNotes("");
         setActiveTab(order.payment_status === 'PAID' ? "items" : "payment");
         setShowDetailModal(true);
@@ -463,6 +481,10 @@ export default function CounterOrders() {
                         placeholder="Search ID, Table, Customer or Mode..."
                         className="pl-10 h-10 rounded-lg border-slate-200 bg-white shadow-sm focus-visible:ring-1"
                         value={searchQuery}
+                        onFocus={() => {
+                            setActiveKeypadField('search');
+                            setShowKeypad(true);
+                        }}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
@@ -582,11 +604,23 @@ export default function CounterOrders() {
                                             <td className="px-6 py-5">
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {order.payment_methods?.length > 0 ? (
-                                                        order.payment_methods.map((m: string, i: number) => (
-                                                            <span key={i} className="text-[11px] font-black px-2 py-0.5 rounded bg-slate-100 text-slate-500 uppercase tracking-tight">
-                                                                {m}
-                                                            </span>
-                                                        ))
+                                                        (() => {
+                                                            // If waiter ever handled it, prioritize QR then first method for single view
+                                                            if (order.received_by_waiter) {
+                                                                const hasQR = order.payment_methods.some((m: string) => m.toUpperCase() === 'QR');
+                                                                const displayMethod = hasQR ? 'QR' : order.payment_methods[0];
+                                                                return (
+                                                                    <span className="text-[11px] font-black px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 uppercase tracking-tight border border-indigo-100">
+                                                                        {displayMethod}
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            return order.payment_methods.map((m: string, i: number) => (
+                                                                <span key={i} className="text-[11px] font-black px-2 py-0.5 rounded bg-slate-100 text-slate-500 uppercase tracking-tight">
+                                                                    {m}
+                                                                </span>
+                                                            ));
+                                                        })()
                                                     ) : order.payment_status === 'PAID' || order.payment_status === 'PARTIAL' ? (
                                                         <span className="text-[11px] font-black px-2 py-0.5 rounded bg-amber-50 text-amber-600 uppercase tracking-tight">
                                                             {order.payment_status}
@@ -655,9 +689,21 @@ export default function CounterOrders() {
                 </div>
             </main>
 
-            {/* Order Details / Payment Dialog */}
-            <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-                <DialogContent className="max-w-[480px] p-0 overflow-hidden border-none shadow-3xl rounded-[2.5rem]">
+            {/* Order Details / Payment Dialog - Non-modal to allow external keyboard */}
+            <Dialog open={showDetailModal} onOpenChange={setShowDetailModal} modal={false}>
+                {showDetailModal && (
+                    <div 
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[40] animate-in fade-in duration-300" 
+                        onClick={() => setShowDetailModal(false)}
+                    />
+                )}
+                <DialogContent 
+                    onInteractOutside={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target?.closest('.global-keyboard')) e.preventDefault();
+                    }}
+                    className="max-w-[480px] p-0 overflow-hidden border-none shadow-3xl rounded-[2.5rem] z-[50]"
+                >
                     <div className="bg-white">
                         <div className="p-6 pb-2">
                             <DialogHeader>
@@ -756,6 +802,10 @@ export default function CounterOrders() {
                                                             max="1000000"
                                                             className="h-16 text-3xl font-black text-center border-2 border-primary/20 focus:border-primary rounded-2xl pl-10"
                                                             value={paymentAmount}
+                                                            onFocus={() => {
+                                                                setActiveKeypadField('payment');
+                                                                setShowKeypad(true);
+                                                            }}
                                                             onChange={(e) => {
                                                                 const val = parseFloat(e.target.value);
                                                                 if (val > 1000000) return;
@@ -777,7 +827,14 @@ export default function CounterOrders() {
                                                             { id: 'CASH', icon: Banknote, label: 'Cash' },
                                                             { id: 'QR', icon: QrCode, label: 'QR' },
                                                             { id: 'ONLINE', icon: CreditCard, label: 'Online' }
-                                                        ].map((method) => (
+                                                        ].filter(method => {
+                                                            // Detect if waiter ever handled it (Lock to their method)
+                                                            if (selectedOrder?.received_by_waiter && selectedOrder.payment_methods?.length > 0) {
+                                                                // Compare case-insensitive to be safe
+                                                                return selectedOrder.payment_methods.some((m: string) => m.toUpperCase() === method.id.toUpperCase());
+                                                            }
+                                                            return true;
+                                                        }).map((method) => (
                                                             <button
                                                                 key={method.id}
                                                                 onClick={() => setPaymentMethod(method.id as any)}
@@ -798,7 +855,8 @@ export default function CounterOrders() {
                                                     onClick={handlePaymentSubmit}
                                                     disabled={isPaying}
                                                 >
-                                                    {isPaying ? <Loader2 className="h-6 w-6 animate-spin" /> : "Receive Payment"}
+                                                    {isPaying ? <Loader2 className="h-6 w-6 animate-spin" /> : 
+                                                     (selectedOrder?.payment_status === 'WAITER RECEIVED' ? "Confirm & Finalize" : "Receive Payment")}
                                                 </Button>
                                             </div>
                                         );
@@ -1023,6 +1081,155 @@ export default function CounterOrders() {
                     </div>
                 </DialogContent>
             </Dialog>
+            {/* Global Floating Virtual Keyboard */}
+            {showKeypad && activeKeypadField && (
+                <div 
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="global-keyboard fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md border-t-2 border-primary/20 shadow-[0_-15px_40px_-10px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-full duration-300 p-2 md:p-3 pointer-events-auto"
+                >
+                    <div className="max-w-4xl mx-auto">
+                        <div className="flex items-center justify-between mb-2 px-1">
+                            <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-primary">
+                                    {activeKeypadField === 'payment' ? 'Payment Amount' : 
+                                     activeKeypadField === 'search' ? 'Search Orders' : 'Virtual Keyboard'}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                        if (activeKeypadField === 'search') setSearchQuery("");
+                                        else if (activeKeypadField === 'payment') setPaymentAmount("");
+                                    }}
+                                    className="h-7 px-2 text-[9px] font-black uppercase text-slate-400 hover:text-destructive"
+                                >
+                                    Clear
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                        setShowKeypad(false);
+                                        (document.activeElement as HTMLElement)?.blur();
+                                    }}
+                                    className="h-6 w-6 rounded-full shadow-inner"
+                                >
+                                    <X className="h-3 w-3" />
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Keyboard Layouts */}
+                        {(activeKeypadField === 'search') ? (
+                            <div className="space-y-1 select-none">
+                                {[
+                                    '1234567890',
+                                    'QWERTYUIOP',
+                                    'ASDFGHJKL',
+                                    'ZXCVBNM'
+                                ].map((row, rIdx) => (
+                                    <div key={rIdx} className="flex justify-center gap-1">
+                                        {row.split('').map(char => (
+                                            <Button
+                                                key={char}
+                                                variant="outline"
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                className="h-9 md:h-11 min-w-[30px] md:min-w-[40px] flex-1 md:flex-none text-xs md:text-sm font-bold rounded-lg border shadow-sm active:scale-90 bg-white hover:border-primary/30 transition-all p-0"
+                                                onClick={() => {
+                                                    setSearchQuery(prev => prev + char);
+                                                }}
+                                            >
+                                                {char}
+                                            </Button>
+                                        ))}
+                                        {rIdx === 3 && (
+                                            <Button
+                                                variant="outline"
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                className="h-9 md:h-11 px-2 md:px-4 text-xs md:text-sm font-bold rounded-lg border-2 border-primary/20 bg-primary/5 text-primary active:scale-90"
+                                                onClick={() => {
+                                                    setSearchQuery(prev => prev.slice(0, -1));
+                                                }}
+                                            >
+                                                ⌫
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+                                <div className="flex justify-center gap-1.5 mt-1">
+                                    <Button
+                                        variant="outline"
+                                        onMouseDown={(e) => e.preventDefault()}
+                                        className="h-9 md:h-11 flex-1 max-w-[400px] text-[10px] md:text-xs font-black rounded-lg border bg-slate-50 active:scale-95 uppercase tracking-widest"
+                                        onClick={() => {
+                                            setSearchQuery(prev => prev + " ");
+                                        }}
+                                    >
+                                        Space
+                                    </Button>
+                                    <Button
+                                        onMouseDown={(e) => e.preventDefault()}
+                                        className="h-9 md:h-11 px-4 md:px-8 text-[10px] md:text-xs font-black rounded-lg bg-primary text-white shadow-lg active:scale-95 uppercase tracking-widest"
+                                        onClick={() => {
+                                        setShowKeypad(false);
+                                        (document.activeElement as HTMLElement)?.blur();
+                                    }}
+                                    >
+                                        Done
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="max-w-[280px] md:max-w-md mx-auto grid grid-cols-3 gap-1.5 md:gap-2">
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, "00", 0, "⌫"].map((key) => (
+                                    <Button
+                                        key={key.toString()}
+                                        variant="outline"
+                                        onMouseDown={(e) => e.preventDefault()}
+                                        className={cn(
+                                            "h-10 md:h-12 text-base md:text-xl font-black rounded-xl transition-all active:scale-90 bg-white hover:bg-slate-50 border shadow-sm p-0",
+                                            key === "⌫" ? "text-destructive border-destructive/10 bg-destructive/5" : "hover:border-primary/30"
+                                        )}
+                                        onClick={() => {
+                                            if (activeKeypadField === 'payment') {
+                                                if (key === "⌫") setPaymentAmount(prev => (prev.toString().length > 0 ? prev.toString().slice(0, -1) : ""));
+                                                else if (key === "00") setPaymentAmount(prev => {
+                                                    const newVal = `${prev}00`;
+                                                    return parseFloat(newVal) <= 1000000 ? newVal : prev;
+                                                });
+                                                else setPaymentAmount(prev => {
+                                                    // If prev is "0" or the field was just pre-filled (numeric type), we might want to replace,
+                                                    // but for now let's just ensure string concatenation.
+                                                    const current = prev.toString();
+                                                    const newVal = current === "0" ? key.toString() : `${current}${key}`;
+                                                    return parseFloat(newVal) <= 1000000 ? newVal : prev;
+                                                });
+                                            }
+                                        }}
+                                    >
+                                        {key}
+                                    </Button>
+                                ))}
+                                <Button
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    className="col-span-3 h-10 md:h-12 text-xs md:text-sm font-black rounded-xl bg-primary text-white shadow-lg active:scale-95 uppercase tracking-widest"
+                                    onClick={() => {
+                                        setShowKeypad(false);
+                                        (document.activeElement as HTMLElement)?.blur();
+                                    }}
+                                >
+                                    Confirm
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
