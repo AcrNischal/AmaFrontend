@@ -18,12 +18,14 @@ interface Customer {
 interface CustomerSelectorProps {
     onSelect: (customer: Customer | null) => void;
     selectedCustomerId?: number;
+    searchTerm?: string;
+    onSearchChange?: (val: string) => void;
+    onFocus?: () => void;
 }
 
-export function CustomerSelector({ onSelect, selectedCustomerId }: CustomerSelectorProps) {
+export function CustomerSelector({ onSelect, selectedCustomerId, searchTerm = "", onSearchChange, onFocus }: CustomerSelectorProps) {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
     const [isCreating, setIsCreating] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
@@ -85,7 +87,7 @@ export function CustomerSelector({ onSelect, selectedCustomerId }: CustomerSelec
             setIsCreating(false);
             setNewName("");
             setNewPhone("");
-            setSearchTerm("");
+            if (onSearchChange) onSearchChange("");
         } catch (err: any) {
             toast.error(err.message || "Failed to create customer");
         } finally {
@@ -159,7 +161,8 @@ export function CustomerSelector({ onSelect, selectedCustomerId }: CustomerSelec
                         <Input
                             placeholder="Search by name or phone..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onFocus={onFocus}
+                            onChange={(e) => onSearchChange ? onSearchChange(e.target.value) : null}
                             className="pl-9 h-11 rounded-xl shadow-sm focus:shadow-md transition-shadow"
                         />
                     </div>
