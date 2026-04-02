@@ -403,18 +403,39 @@ export default function AdminDashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={(dashboardData?.sales_by_payment_method || []).map((p: any) => ({
-                    name: (p.payment_method || 'other').toLowerCase(),
-                    value: parseFloat(String(p.total_amount || 0)) || 0
-                  }))}
+                  data={(() => {
+                    const methods = (dashboardData?.sales_by_payment_method || [])
+                      .filter((p: any) => ['CASH', 'QR'].includes(p.payment_method?.toUpperCase()))
+                      .map((p: any) => ({
+                        name: (p.payment_method || 'other').toLowerCase(),
+                        value: parseFloat(String(p.total_amount || 0)) || 0
+                      }));
+
+                    const pending = (dashboardData?.sales_by_status || [])
+                      .find((s: any) => s.payment_status?.toUpperCase() === 'PENDING');
+
+                    if (pending && parseFloat(String(pending.total_amount)) > 0) {
+                      methods.push({
+                        name: 'pending',
+                        value: parseFloat(String(pending.total_amount))
+                      });
+                    }
+                    return methods;
+                  })()}
                   dataKey="value"
                   innerRadius={50}
                   outerRadius={70}
                   paddingAngle={5}
                   stroke="none"
                 >
-                  {(dashboardData?.sales_by_payment_method || []).map((_: any, index: number) => (
-                    <Cell key={`cell-pay-${index}`} fill={PAYMENT_COLORS[index % PAYMENT_COLORS.length]} />
+                  {/* Fixed coloring for consistency: CASH(Green), QR(Blue), Pending(Red/Amber) */}
+                  {[
+                    'hsl(142, 71%, 45%)', // Cash - Green
+                    'hsl(217, 91%, 60%)', // QR - Blue
+                    'hsl(0, 84%, 60%)',   // Pending - Red
+                    'hsl(32, 95%, 44%)'   // Other - Amber
+                  ].map((color, index) => (
+                    <Cell key={`cell-pay-${index}`} fill={color} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(value: any) => [`Rs.${Number(value).toLocaleString()}`, 'Total']} />
