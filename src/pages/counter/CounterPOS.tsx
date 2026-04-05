@@ -39,7 +39,7 @@ import { logout, getCurrentUser } from "../../auth/auth";
 import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
 import { CustomerSelector } from "@/components/pos/CustomerSelector";
 import { FloorSelector } from "@/components/pos/FloorSelector";
-import { fetchProducts, fetchCategories, createInvoice, fetchInvoices } from "@/api/index.js";
+import { fetchProducts, fetchCategories, createInvoice, fetchInvoices, fetchBranch } from "@/api/index.js";
 import { MenuItem, User as UserType } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,6 +114,7 @@ export default function CounterPOS() {
     const [paidAmount, setPaidAmount] = useState(0);
     const [dueAmount, setDueAmount] = useState(0);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [branchInfo, setBranchInfo] = useState<any>(null);
 
     // Modals
     const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -138,10 +139,18 @@ export default function CounterPOS() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [productsData, categoriesData] = await Promise.all([
+            const user = getCurrentUser();
+            console.log("🏪 (POS) Fetching data for user:", user);
+            const [productsData, categoriesData, branchData] = await Promise.all([
                 fetchProducts(),
-                fetchCategories()
+                fetchCategories(),
+                user?.branch_id ? fetchBranch(user.branch_id) : Promise.resolve(null)
             ]);
+
+            console.log("🏪 (POS) Branch Data received:", branchData);
+            if (branchData && branchData.success) {
+                setBranchInfo(branchData.data);
+            }
 
             const mappedProducts: any[] = productsData.map((p: any) => ({
                 id: p.id.toString(),
@@ -450,8 +459,8 @@ export default function CounterPOS() {
 </head>
 <body>
     <div class="thermal-header">
-        <div class="thermal-title">AMA BAKERY</div>
-        <div class="thermal-subtitle">Tel: 9816020731</div>
+        <div class="thermal-title">${branchInfo?.receipt_header || "AMA BAKERY"}</div>
+        <div class="thermal-subtitle">Tel: ${branchInfo?.phone || "9816020731"}</div>
     </div>
     
     <div class="thermal-divider"></div>
@@ -501,12 +510,9 @@ export default function CounterPOS() {
     </div>
 
     <div class="thermal-footer">
-        THANK YOU FOR YOUR VISIT!
+        ${branchInfo?.receipt_footer || "THANK YOU FOR YOUR VISIT!"}
     </div>
     <div class="thermal-barcode">
-    </div>
-    <div class="thermal-branding">
-        POS-BY: DragUpTech
     </div>
 
     <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();};};</script>
@@ -540,7 +546,7 @@ export default function CounterPOS() {
                         <img src="/logos/logo1white.jfif" alt="AMA BAKERY" className="h-full w-full object-cover rounded-full" />
                     </div>
                     <div>
-                        <h1 className="text-lg md:text-xl font-rockwell font-bold text-slate-800 leading-none">AMA BAKERY</h1>
+                        <h1 className="text-lg md:text-xl font-rockwell font-bold text-slate-800 leading-none">{branchInfo?.name || "AMA BAKERY"}</h1>
                         <p className="text-[9px] md:text-[10px] font-bold text-primary tracking-widest uppercase mt-1">POS Terminal</p>
                     </div>
                 </div>
@@ -712,11 +718,11 @@ export default function CounterPOS() {
                 </section>
                 {/* Right Side: Cart & Billing (Desktop) */}
                 <aside className="hidden lg:flex w-[400px] bg-white border-l flex-col shadow-2xl z-20">
-                    <CartContent 
-                        cart={cart} 
-                        setCart={setCart} 
-                        updateQuantity={updateQuantity} 
-                        handleQtyEditOpen={handleQtyEditOpen} 
+                    <CartContent
+                        cart={cart}
+                        setCart={setCart}
+                        updateQuantity={updateQuantity}
+                        handleQtyEditOpen={handleQtyEditOpen}
                         deleteFromCart={deleteFromCart}
                         subtotal={subtotal}
                         taxEnabled={taxEnabled}
@@ -743,11 +749,11 @@ export default function CounterPOS() {
                                 </SheetTitle>
                             </SheetHeader>
                             <div className="flex-1 overflow-hidden">
-                                <CartContent 
-                                    cart={cart} 
-                                    setCart={setCart} 
-                                    updateQuantity={updateQuantity} 
-                                    handleQtyEditOpen={handleQtyEditOpen} 
+                                <CartContent
+                                    cart={cart}
+                                    setCart={setCart}
+                                    updateQuantity={updateQuantity}
+                                    handleQtyEditOpen={handleQtyEditOpen}
                                     deleteFromCart={deleteFromCart}
                                     subtotal={subtotal}
                                     taxEnabled={taxEnabled}
@@ -791,12 +797,12 @@ export default function CounterPOS() {
             {/* Checkout Dialog - Non-modal to allow external keyboard interaction */}
             <Dialog open={showCheckoutModal} onOpenChange={setShowCheckoutModal} modal={false}>
                 {showCheckoutModal && (
-                    <div 
-                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[40] animate-in fade-in duration-300" 
+                    <div
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[40] animate-in fade-in duration-300"
                         onClick={() => !showKeypad && setShowCheckoutModal(false)}
                     />
                 )}
-                <DialogContent 
+                <DialogContent
                     onInteractOutside={(e) => {
                         // Prevent closing if interacting with the keyboard or its backdrop
                         const target = e.target as HTMLElement;
@@ -990,10 +996,10 @@ export default function CounterPOS() {
                                 <div className="flex flex-col items-center gap-6 animate-in fade-in slide-in-from-right-4">
                                     <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Scan QR Code</Label>
                                     <div className="bg-white p-4 rounded-3xl shadow-lg border border-slate-100 w-64 h-64 flex items-center justify-center overflow-hidden mx-auto">
-                                        <img 
-                                            src="/qr.png" 
-                                            alt="QR Code" 
-                                            className="h-full w-full object-cover" 
+                                        <img
+                                            src="/qr.png"
+                                            alt="QR Code"
+                                            className="h-full w-full object-cover"
                                             onError={(e) => {
                                                 const target = e.target as HTMLImageElement;
                                                 target.src = "https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=AMABAKERY_PAYMENT";
@@ -1099,8 +1105,8 @@ export default function CounterPOS() {
                         <div className="thermal-receipt printable-receipt" id="bill-print-root">
                             <div className="thermal-receipt printable-receipt" id="bill-print-root">
                                 <div className="thermal-header">
-                                    <h1 className="thermal-title">AMA BAKERY</h1>
-                                    <div className="thermal-subtitle">Tel: 9816020731</div>
+                                    <h1 className="thermal-title">{branchInfo?.receipt_header || "AMA BAKERY"}</h1>
+                                    <div className="thermal-subtitle">Tel: {branchInfo?.phone || "9816020731"}</div>
                                 </div>
 
                                 <div className="thermal-divider"></div>
@@ -1183,12 +1189,9 @@ export default function CounterPOS() {
                                 </div>
 
                                 <div className="thermal-footer">
-                                    THANK YOU FOR YOUR VISIT!
+                                    {branchInfo?.receipt_footer || "THANK YOU FOR YOUR VISIT!"}
                                 </div>
                                 <div className="thermal-barcode">
-                                </div>
-                                <div className="thermal-branding">
-                                    POS-BY: DragUpTech
                                 </div>
                             </div>
                         </div>
@@ -1199,12 +1202,12 @@ export default function CounterPOS() {
             {/* Quantity Edit Dialog - Non-modal to avoid focus issues */}
             <Dialog open={showQtyDialog} onOpenChange={setShowQtyDialog} modal={false}>
                 {showQtyDialog && (
-                    <div 
-                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[40] animate-in fade-in duration-300" 
+                    <div
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[40] animate-in fade-in duration-300"
                         onClick={() => setShowQtyDialog(false)}
                     />
                 )}
-                <DialogContent 
+                <DialogContent
                     onInteractOutside={(e) => {
                         const target = e.target as HTMLElement;
                         if (target?.closest('.global-keyboard')) e.preventDefault();
@@ -1262,218 +1265,218 @@ export default function CounterPOS() {
             {/* Global Floating Virtual Keyboard */}
             {showKeypad && activeKeypadField && (
                 <>
-                {/* Backdrop Layer to capture outside clicks and block background actions */}
-                <div 
-                    className="fixed inset-0 z-[999] bg-transparent pointer-events-auto keyboard-backdrop"
-                    onMouseDown={(e) => {
-                        e.stopPropagation();
-                        setShowKeypad(false);
-                        (document.activeElement as HTMLElement)?.blur();
-                    }}
-                />
-                <div 
-                    ref={keyboardRef as any}
-                    onMouseDown={(e) => e.stopPropagation()} // Prevent closing when clicking inside
-                    className="global-keyboard fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md border-t-2 border-primary/20 shadow-[0_-15px_40px_-10px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-full duration-300 p-2 md:p-4 pointer-events-auto"
-                >
-                    <div className="max-w-7xl mx-auto">
-                        <div className="flex items-center justify-between mb-2 px-1">
-                            <div className="flex items-center gap-2">
-                                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-primary">
-                                    {activeKeypadField === 'cash' ? 'Cash Received' : 
-                                     activeKeypadField === 'discount' ? 'Discount %' : 
-                                     activeKeypadField === 'customer' ? 'Customer Search' : 
-                                     activeKeypadField === 'productSearch' ? 'Product Search' : 
-                                     activeKeypadField === 'table' ? 'Table Number' : 'Virtual Keyboard'}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    onClick={() => {
-                                        if (activeKeypadField === 'customer') setCustomerSearch("");
-                                        else if (activeKeypadField === 'productSearch') setSearchQuery("");
-                                        else if (activeKeypadField === 'cash') setCashReceived("");
-                                        else if (activeKeypadField === 'discount') setDiscountPercent(0);
-                                        else if (activeKeypadField === 'table') setTableNo("1");
-                                    }}
-                                    className="h-7 px-2 text-[9px] font-black uppercase text-slate-400 hover:text-destructive"
-                                >
-                                    Clear
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    onClick={() => {
-                                        setShowKeypad(false);
-                                        (document.activeElement as HTMLElement)?.blur();
-                                    }}
-                                    className="h-6 w-6 rounded-full shadow-inner"
-                                >
-                                    <X className="h-3 w-3" />
-                                </Button>
-                            </div>
-                        </div>
-
-                        {/* Keyboard Layouts */}
-                        {(activeKeypadField === 'customer' || activeKeypadField === 'productSearch') ? (
-                            <div className="space-y-1 select-none">
-                                {[
-                                    '1234567890',
-                                    'QWERTYUIOP',
-                                    'ASDFGHJKL',
-                                    'ZXCVBNM'
-                                ].map((row, rIdx) => (
-                                    <div key={rIdx} className="flex justify-center gap-1">
-                                        {row.split('').map(char => (
-                                            <Button
-                                                key={char}
-                                                variant="outline"
-                                                onMouseDown={(e) => e.preventDefault()}
-                                                className="h-12 md:h-16 min-w-[40px] md:min-w-[85px] flex-1 md:flex-none text-sm md:text-xl font-black rounded-xl border shadow-sm active:scale-95 bg-white hover:border-primary/40 transition-all p-0"
-                                                onClick={() => {
-                                                    const setter = activeKeypadField === 'customer' ? setCustomerSearch : setSearchQuery;
-                                                    setter(prev => prev + char);
-                                                }}
-                                            >
-                                                {char}
-                                            </Button>
-                                        ))}
-                                        {rIdx === 3 && (
-                                            <Button
-                                                variant="outline"
-                                                className="h-12 md:h-16 px-6 md:px-12 text-sm md:text-xl font-black rounded-xl border-2 border-primary/20 bg-primary/5 text-primary active:scale-95"
-                                                onMouseDown={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    // Initial character delete
-                                                    const setter = activeKeypadField === 'customer' || activeKeypadField === 'productSearch' ? (activeKeypadField === 'customer' ? setCustomerSearch : setSearchQuery) : null;
-                                                    if (setter) {
-                                                        setter(prev => prev.slice(0, -1));
-                                                        
-                                                        stopBackspace();
-                                                        backspaceTimeoutRef.current = setTimeout(() => {
-                                                            backspaceIntervalRef.current = setInterval(() => {
-                                                                setter(prev => deleteWord(prev));
-                                                            }, 150);
-                                                        }, 400);
-                                                    }
-                                                }}
-                                                onMouseUp={stopBackspace}
-                                                onMouseLeave={stopBackspace}
-                                                onTouchEnd={stopBackspace}
-                                            >
-                                                ⌫
-                                            </Button>
-                                        )}
-                                    </div>
-                                ))}
-                                <div className="flex justify-center gap-1.5 mt-1">
+                    {/* Backdrop Layer to capture outside clicks and block background actions */}
+                    <div
+                        className="fixed inset-0 z-[999] bg-transparent pointer-events-auto keyboard-backdrop"
+                        onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setShowKeypad(false);
+                            (document.activeElement as HTMLElement)?.blur();
+                        }}
+                    />
+                    <div
+                        ref={keyboardRef as any}
+                        onMouseDown={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+                        className="global-keyboard fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md border-t-2 border-primary/20 shadow-[0_-15px_40px_-10px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-full duration-300 p-2 md:p-4 pointer-events-auto"
+                    >
+                        <div className="max-w-7xl mx-auto">
+                            <div className="flex items-center justify-between mb-2 px-1">
+                                <div className="flex items-center gap-2">
+                                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.15em] text-primary">
+                                        {activeKeypadField === 'cash' ? 'Cash Received' :
+                                            activeKeypadField === 'discount' ? 'Discount %' :
+                                                activeKeypadField === 'customer' ? 'Customer Search' :
+                                                    activeKeypadField === 'productSearch' ? 'Product Search' :
+                                                        activeKeypadField === 'table' ? 'Table Number' : 'Virtual Keyboard'}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3">
                                     <Button
-                                        variant="outline"
+                                        variant="ghost"
+                                        size="sm"
                                         onMouseDown={(e) => e.preventDefault()}
-                                        className="h-12 md:h-16 flex-1 max-w-[800px] text-xs md:text-sm font-black rounded-xl border bg-slate-50 active:scale-95 uppercase tracking-widest shadow-inner"
                                         onClick={() => {
-                                            const setter = activeKeypadField === 'customer' || activeKeypadField === 'productSearch' ? setCustomerSearch : setSearchQuery;
-                                            setter(prev => prev + " ");
+                                            if (activeKeypadField === 'customer') setCustomerSearch("");
+                                            else if (activeKeypadField === 'productSearch') setSearchQuery("");
+                                            else if (activeKeypadField === 'cash') setCashReceived("");
+                                            else if (activeKeypadField === 'discount') setDiscountPercent(0);
+                                            else if (activeKeypadField === 'table') setTableNo("1");
                                         }}
+                                        className="h-7 px-2 text-[9px] font-black uppercase text-slate-400 hover:text-destructive"
                                     >
-                                        Space
+                                        Clear
                                     </Button>
                                     <Button
+                                        variant="secondary"
+                                        size="icon"
                                         onMouseDown={(e) => e.preventDefault()}
-                                        className="h-12 md:h-16 px-10 md:px-20 text-xs md:text-sm font-black rounded-xl bg-primary text-white shadow-lg active:scale-95 uppercase tracking-widest"
+                                        onClick={() => {
+                                            setShowKeypad(false);
+                                            (document.activeElement as HTMLElement)?.blur();
+                                        }}
+                                        className="h-6 w-6 rounded-full shadow-inner"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Keyboard Layouts */}
+                            {(activeKeypadField === 'customer' || activeKeypadField === 'productSearch') ? (
+                                <div className="space-y-1 select-none">
+                                    {[
+                                        '1234567890',
+                                        'QWERTYUIOP',
+                                        'ASDFGHJKL',
+                                        'ZXCVBNM'
+                                    ].map((row, rIdx) => (
+                                        <div key={rIdx} className="flex justify-center gap-1">
+                                            {row.split('').map(char => (
+                                                <Button
+                                                    key={char}
+                                                    variant="outline"
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    className="h-12 md:h-16 min-w-[40px] md:min-w-[85px] flex-1 md:flex-none text-sm md:text-xl font-black rounded-xl border shadow-sm active:scale-95 bg-white hover:border-primary/40 transition-all p-0"
+                                                    onClick={() => {
+                                                        const setter = activeKeypadField === 'customer' ? setCustomerSearch : setSearchQuery;
+                                                        setter(prev => prev + char);
+                                                    }}
+                                                >
+                                                    {char}
+                                                </Button>
+                                            ))}
+                                            {rIdx === 3 && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="h-12 md:h-16 px-6 md:px-12 text-sm md:text-xl font-black rounded-xl border-2 border-primary/20 bg-primary/5 text-primary active:scale-95"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        // Initial character delete
+                                                        const setter = activeKeypadField === 'customer' || activeKeypadField === 'productSearch' ? (activeKeypadField === 'customer' ? setCustomerSearch : setSearchQuery) : null;
+                                                        if (setter) {
+                                                            setter(prev => prev.slice(0, -1));
+
+                                                            stopBackspace();
+                                                            backspaceTimeoutRef.current = setTimeout(() => {
+                                                                backspaceIntervalRef.current = setInterval(() => {
+                                                                    setter(prev => deleteWord(prev));
+                                                                }, 150);
+                                                            }, 400);
+                                                        }
+                                                    }}
+                                                    onMouseUp={stopBackspace}
+                                                    onMouseLeave={stopBackspace}
+                                                    onTouchEnd={stopBackspace}
+                                                >
+                                                    ⌫
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <div className="flex justify-center gap-1.5 mt-1">
+                                        <Button
+                                            variant="outline"
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            className="h-12 md:h-16 flex-1 max-w-[800px] text-xs md:text-sm font-black rounded-xl border bg-slate-50 active:scale-95 uppercase tracking-widest shadow-inner"
+                                            onClick={() => {
+                                                const setter = activeKeypadField === 'customer' || activeKeypadField === 'productSearch' ? setCustomerSearch : setSearchQuery;
+                                                setter(prev => prev + " ");
+                                            }}
+                                        >
+                                            Space
+                                        </Button>
+                                        <Button
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            className="h-12 md:h-16 px-10 md:px-20 text-xs md:text-sm font-black rounded-xl bg-primary text-white shadow-lg active:scale-95 uppercase tracking-widest"
+                                            onClick={() => {
+                                                setShowKeypad(false);
+                                                (document.activeElement as HTMLElement)?.blur();
+                                            }}
+                                        >
+                                            Done
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="max-w-[360px] md:max-w-md mx-auto grid grid-cols-3 gap-3 md:gap-4">
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, "00", 0, "⌫"].map((key) => (
+                                        <Button
+                                            key={key.toString()}
+                                            variant="outline"
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            className={cn(
+                                                "h-14 md:h-16 text-xl md:text-3xl font-black rounded-2xl transition-all active:scale-90 bg-white hover:bg-slate-50 border-2 shadow-sm p-0",
+                                                key === "⌫" ? "text-destructive border-destructive/20 bg-destructive/5" : "hover:border-primary/40"
+                                            )}
+                                            onClick={() => {
+                                                if (activeKeypadField === 'cash') {
+                                                    if (key === "⌫") setCashReceived(prev => (prev.toString().length > 0 ? prev.toString().slice(0, -1) : ""));
+                                                    else if (key === "00") setCashReceived(prev => {
+                                                        const newVal = `${prev}00`;
+                                                        return parseFloat(newVal) <= 100000 ? newVal : prev;
+                                                    });
+                                                    else setCashReceived(prev => {
+                                                        const current = prev.toString();
+                                                        const newVal = current === "0" ? key.toString() : `${current}${key}`;
+                                                        return parseFloat(newVal) <= 100000 ? newVal : prev;
+                                                    });
+                                                } else if (activeKeypadField === 'discount') {
+                                                    if (key === "⌫") setDiscountPercent(prev => {
+                                                        const current = prev.toString();
+                                                        const newVal = current.length > 1 ? parseInt(current.slice(0, -1)) : 0;
+                                                        return isNaN(newVal) ? 0 : newVal;
+                                                    });
+                                                    else if (key === "00") setDiscountPercent(prev => {
+                                                        const newVal = parseInt(`${prev}00`);
+                                                        return isNaN(newVal) ? 0 : Math.min(100, newVal);
+                                                    });
+                                                    else setDiscountPercent(prev => {
+                                                        const current = prev.toString();
+                                                        const newVal = parseInt(current === "0" ? key.toString() : `${current}${key}`);
+                                                        return isNaN(newVal) ? 0 : Math.min(100, newVal);
+                                                    });
+                                                } else if (activeKeypadField === 'table') {
+                                                    if (key === "⌫") setTableNo(prev => (prev.toString().length > 1 ? prev.toString().slice(0, -1) : "1"));
+                                                    else if (key === "00") return; // Table no shouldn't have 00 usually
+                                                    else setTableNo(prev => {
+                                                        const current = prev.toString();
+                                                        const newVal = current === "1" ? key.toString() : `${current}${key}`;
+                                                        const max = selectedFloor?.table_count || 100;
+                                                        return !isNaN(parseInt(newVal)) && parseInt(newVal) <= max ? newVal : prev;
+                                                    });
+                                                }
+                                            }}
+                                        >
+                                            {key}
+                                        </Button>
+                                    ))}
+                                    <Button
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        className="col-span-3 h-14 md:h-16 text-base md:text-xl font-black rounded-2xl bg-primary text-white shadow-xl active:scale-95 uppercase tracking-widest mt-2"
                                         onClick={() => {
                                             setShowKeypad(false);
                                             (document.activeElement as HTMLElement)?.blur();
                                         }}
                                     >
-                                        Done
+                                        Confirm
                                     </Button>
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="max-w-[360px] md:max-w-md mx-auto grid grid-cols-3 gap-3 md:gap-4">
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, "00", 0, "⌫"].map((key) => (
-                                    <Button
-                                        key={key.toString()}
-                                        variant="outline"
-                                        onMouseDown={(e) => e.stopPropagation()}
-                                        className={cn(
-                                            "h-14 md:h-16 text-xl md:text-3xl font-black rounded-2xl transition-all active:scale-90 bg-white hover:bg-slate-50 border-2 shadow-sm p-0",
-                                            key === "⌫" ? "text-destructive border-destructive/20 bg-destructive/5" : "hover:border-primary/40"
-                                        )}
-                                        onClick={() => {
-                                            if (activeKeypadField === 'cash') {
-                                                if (key === "⌫") setCashReceived(prev => (prev.toString().length > 0 ? prev.toString().slice(0, -1) : ""));
-                                                else if (key === "00") setCashReceived(prev => {
-                                                    const newVal = `${prev}00`;
-                                                    return parseFloat(newVal) <= 100000 ? newVal : prev;
-                                                });
-                                                else setCashReceived(prev => {
-                                                    const current = prev.toString();
-                                                    const newVal = current === "0" ? key.toString() : `${current}${key}`;
-                                                    return parseFloat(newVal) <= 100000 ? newVal : prev;
-                                                });
-                                            } else if (activeKeypadField === 'discount') {
-                                                if (key === "⌫") setDiscountPercent(prev => {
-                                                    const current = prev.toString();
-                                                    const newVal = current.length > 1 ? parseInt(current.slice(0, -1)) : 0;
-                                                    return isNaN(newVal) ? 0 : newVal;
-                                                });
-                                                else if (key === "00") setDiscountPercent(prev => {
-                                                    const newVal = parseInt(`${prev}00`);
-                                                    return isNaN(newVal) ? 0 : Math.min(100, newVal);
-                                                });
-                                                else setDiscountPercent(prev => {
-                                                    const current = prev.toString();
-                                                    const newVal = parseInt(current === "0" ? key.toString() : `${current}${key}`);
-                                                    return isNaN(newVal) ? 0 : Math.min(100, newVal);
-                                                });
-                                            } else if (activeKeypadField === 'table') {
-                                                if (key === "⌫") setTableNo(prev => (prev.toString().length > 1 ? prev.toString().slice(0, -1) : "1"));
-                                                else if (key === "00") return; // Table no shouldn't have 00 usually
-                                                else setTableNo(prev => {
-                                                    const current = prev.toString();
-                                                    const newVal = current === "1" ? key.toString() : `${current}${key}`;
-                                                    const max = selectedFloor?.table_count || 100;
-                                                    return !isNaN(parseInt(newVal)) && parseInt(newVal) <= max ? newVal : prev;
-                                                });
-                                            }
-                                        }}
-                                    >
-                                        {key}
-                                    </Button>
-                                ))}
-                                <Button
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    className="col-span-3 h-14 md:h-16 text-base md:text-xl font-black rounded-2xl bg-primary text-white shadow-xl active:scale-95 uppercase tracking-widest mt-2"
-                                    onClick={() => {
-                                        setShowKeypad(false);
-                                        (document.activeElement as HTMLElement)?.blur();
-                                    }}
-                                >
-                                    Confirm
-                                </Button>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
-                </div>
                 </>
             )}
         </div>
     );
 }
 
-function CartContent({ 
-    cart, 
-    setCart, 
-    updateQuantity, 
-    handleQtyEditOpen, 
+function CartContent({
+    cart,
+    setCart,
+    updateQuantity,
+    handleQtyEditOpen,
     deleteFromCart,
     subtotal,
     taxEnabled,
@@ -1598,7 +1601,7 @@ function CartContent({
                                 <span className="text-[10px] md:text-xs font-medium text-slate-300">Disabled</span>
                             )}
                         </div>
-                        
+
                         {taxEnabled && (
                             <div className="flex gap-1 justify-end">
                                 {[5, 13].map((rate) => (

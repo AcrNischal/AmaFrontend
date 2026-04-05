@@ -1,221 +1,267 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Card } from "@/components/ui/card";
-import {
-  Store,
-  Bell,
-  Printer,
-  CreditCard,
-  Globe,
-  Save
-} from "lucide-react";
+import { Store, Phone, Mail, MapPin, FileText, Save, Loader2, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { getCurrentUser } from "../../auth/auth";
+import { fetchBranch, updateBranch } from "../../api";
 
 export default function AdminSettings() {
-  const handleSave = async () => {
-    toast.success("Settings saved successfully");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [branchData, setBranchData] = useState<any>(null);
+
+  const user = getCurrentUser();
+
+  useEffect(() => {
+    if (user?.branch_id) {
+      loadBranchData();
+    }
+  }, [user?.branch_id]);
+
+  const loadBranchData = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchBranch(user.branch_id);
+      if (data.success && data.data) {
+        setBranchData(data.data);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load branch settings");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!branchData) {
+      console.warn("⚠️ No branch data to save");
+      return;
+    }
+
+    console.log("💾 Attempting to save branch settings...", {
+      id: branchData.id,
+      payload: {
+        name: branchData.name,
+        location: branchData.location,
+        phone: branchData.phone,
+        email: branchData.email,
+        address: branchData.address,
+        receipt_header: branchData.receipt_header,
+        receipt_footer: branchData.receipt_footer
+      }
+    });
+
+    setSaving(true);
+    try {
+      const response = await updateBranch(branchData.id, {
+        name: branchData.name,
+        location: branchData.location,
+        phone: branchData.phone,
+        email: branchData.email,
+        address: branchData.address,
+        receipt_header: branchData.receipt_header,
+        receipt_footer: branchData.receipt_footer
+      });
+      console.log("✅ Update Branch Response:", response);
+      toast.success("Settings updated successfully");
+    } catch (err: any) {
+      console.error("❌ Failed to update settings:", err);
+      toast.error(err.message || "Failed to update settings");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="p-6 md:p-10 space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-          <p className="text-muted-foreground">Configure your restaurant system</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Branch Settings</h1>
+          <p className="text-slate-500 font-medium mt-1">Manage your restaurant info and receipt details</p>
         </div>
-        <Button onClick={handleSave}>
-          <Save className="h-4 w-4 mr-2" />
+        <Button onClick={handleSave} disabled={saving} className="h-12 px-8 rounded-2xl font-bold gap-2 shadow-lg shadow-primary/20">
+          {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
           Save Changes
         </Button>
       </div>
 
-      {/* Restaurant Info */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Store className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h3 className="font-semibold">Restaurant Information</h3>
-            <p className="text-sm text-muted-foreground">Basic details about your restaurant</p>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          {/* General Information */}
+          <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2.5rem] overflow-hidden">
+            <CardHeader className="bg-slate-50/50 px-8 py-8">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                  <Store className="h-6 w-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-black">Basic Information</CardTitle>
+                  <CardDescription className="font-bold text-slate-400">Branch identity and contact details</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-8 py-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Display Name</Label>
+                  <div className="relative">
+                    <Store className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      className="h-12 pl-12 rounded-xl font-bold bg-slate-50 border-transparent focus:bg-white transition-all"
+                      value={branchData?.name || ""}
+                      onChange={(e) => setBranchData({ ...branchData, name: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Phone Number</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      className="h-12 pl-12 rounded-xl font-bold bg-slate-50 border-transparent focus:bg-white transition-all"
+                      value={branchData?.phone || ""}
+                      onChange={(e) => setBranchData({ ...branchData, phone: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Email Address</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      type="email"
+                      className="h-12 pl-12 rounded-xl font-bold bg-slate-50 border-transparent focus:bg-white transition-all"
+                      value={branchData?.email || ""}
+                      onChange={(e) => setBranchData({ ...branchData, email: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Short Location</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      className="h-12 pl-12 rounded-xl font-bold bg-slate-50 border-transparent focus:bg-white transition-all"
+                      value={branchData?.location || ""}
+                      onChange={(e) => setBranchData({ ...branchData, location: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Full Address</Label>
+                <Textarea
+                  className="min-h-[100px] rounded-2xl font-bold bg-slate-50 border-transparent focus:bg-white transition-all p-4 resize-none"
+                  value={branchData?.address || ""}
+                  onChange={(e) => setBranchData({ ...branchData, address: e.target.value })}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Receipt Customization */}
+          <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2.5rem] overflow-hidden">
+            <CardHeader className="bg-slate-50/50 px-8 py-8">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-black">Receipt Branding</CardTitle>
+                  <CardDescription className="font-bold text-slate-400">Configure how your prints look</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-8 py-8 space-y-6">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Receipt Header Title</Label>
+                <Input
+                  className="h-12 rounded-xl font-bold bg-slate-50 border-transparent focus:bg-white transition-all px-4"
+                  value={branchData?.receipt_header || ""}
+                  onChange={(e) => setBranchData({ ...branchData, receipt_header: e.target.value })}
+                  placeholder="e.g. AMA BAKERY - MAIN STREET"
+                />
+                <p className="text-[10px] font-bold text-slate-400">This appears at the very top of the bill</p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Receipt Footer Note</Label>
+                <Input
+                  className="h-12 rounded-xl font-bold bg-slate-50 border-transparent focus:bg-white transition-all px-4"
+                  value={branchData?.receipt_footer || ""}
+                  onChange={(e) => setBranchData({ ...branchData, receipt_footer: e.target.value })}
+                  placeholder="e.g. THANK YOU FOR YOUR VISIT!"
+                />
+                <p className="text-[10px] font-bold text-slate-400">This appears at the very bottom of the bill</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <Label htmlFor="name">Restaurant Name</Label>
-            <Input id="name" defaultValue="Ama Bakery" />
-          </div>
-          <div>
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input id="phone" defaultValue="+91 98765 43210" />
-          </div>
-          <div className="md:col-span-2">
-            <Label htmlFor="address">Address</Label>
-            <Input id="address" defaultValue="123 Main Street, City Center" />
-          </div>
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" defaultValue="contact@amabakery.com" />
-          </div>
-          <div>
-            <Label htmlFor="gst">GST Number</Label>
-            <Input id="gst" defaultValue="22AAAAA0000A1Z5" />
-          </div>
-        </div>
-      </Card>
+        {/* Preview Sidebar */}
+        <div className="space-y-8">
+          <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2.5rem] overflow-hidden bg-white">
+            <CardHeader className="bg-slate-900 px-8 py-6">
+              <CardTitle className="text-white text-lg">Bill Preview</CardTitle>
+              <CardDescription className="text-slate-400 text-xs">Real-time receipt preview</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="p-8 bg-white text-slate-900 border-x border-b mx-4 mb-8 mt-4 shadow-sm font-mono text-[10px] leading-tight space-y-4">
+                <div className="text-center space-y-1">
+                  <p className="text-[14px] font-black uppercase">{branchData?.receipt_header || "AMA BAKERY"}</p>
+                  <p>Tel: {branchData?.phone || "9816020731"}</p>
+                  {branchData?.location && <p>{branchData.location.toUpperCase()}</p>}
+                </div>
 
+                <div className="border-y border-dashed py-2 space-y-1">
+                  <div className="flex justify-between">
+                    <span>INV: #POS-123456</span>
+                    <span>CSHR: Admin</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>DATE: {new Date().toLocaleDateString()}</span>
+                    <span>CUST: Walk-in</span>
+                  </div>
+                </div>
 
-      {/* Notifications */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
-            <Bell className="h-5 w-5 text-info" />
-          </div>
-          <div>
-            <h3 className="font-semibold">Notifications</h3>
-            <p className="text-sm text-muted-foreground">Configure alert preferences</p>
-          </div>
-        </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between border-b border-dashed pb-1 font-black">
+                    <span>ITEM</span>
+                    <span>QTY</span>
+                    <span>TOTAL</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Sample Product</span>
+                    <span>1</span>
+                    <span>100.00</span>
+                  </div>
+                </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">New Order Sound</p>
-              <p className="text-sm text-muted-foreground">Play sound for new orders in kitchen</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Low Stock Alerts</p>
-              <p className="text-sm text-muted-foreground">Get notified when inventory is low</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Order Ready Notifications</p>
-              <p className="text-sm text-muted-foreground">Notify waiters when order is ready</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-        </div>
-      </Card>
+                <div className="border-t border-dashed pt-2 space-y-1 text-right">
+                  <p className="font-black text-[12px]">TOTAL: Rs.100.00</p>
+                </div>
 
-      {/* Printing */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-            <Printer className="h-5 w-5 text-warning" />
-          </div>
-          <div>
-            <h3 className="font-semibold">Printing</h3>
-            <p className="text-sm text-muted-foreground">Configure KOT and bill printing</p>
-          </div>
+                <div className="text-center pt-4 border-t border-dashed">
+                  <p className="font-black uppercase">{branchData?.receipt_footer || "THANK YOU FOR YOUR VISIT!"}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Auto-Print KOT</p>
-              <p className="text-sm text-muted-foreground">Automatically print KOT when order is placed</p>
-            </div>
-            <Switch />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Print Customer Copy</p>
-              <p className="text-sm text-muted-foreground">Print customer copy of bill</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-          <Separator />
-          <div>
-            <Label htmlFor="printer">Default Printer</Label>
-            <Input id="printer" placeholder="Select printer..." className="mt-2" />
-          </div>
-        </div>
-      </Card>
-
-      {/* Payment */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-            <CreditCard className="h-5 w-5 text-success" />
-          </div>
-          <div>
-            <h3 className="font-semibold">Payment Methods</h3>
-            <p className="text-sm text-muted-foreground">Configure accepted payment methods</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Cash</p>
-              <p className="text-sm text-muted-foreground">Accept cash payments</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">UPI</p>
-              <p className="text-sm text-muted-foreground">Accept UPI payments</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Card</p>
-              <p className="text-sm text-muted-foreground">Accept credit/debit card payments</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-        </div>
-      </Card>
-
-      {/* Regional */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
-            <Globe className="h-5 w-5 text-accent" />
-          </div>
-          <div>
-            <h3 className="font-semibold">Regional Settings</h3>
-            <p className="text-sm text-muted-foreground">Currency and language preferences</p>
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <Label htmlFor="currency">Currency</Label>
-            <Input id="currency" defaultValue="INR (Rs.)" />
-          </div>
-          <div>
-            <Label htmlFor="timezone">Timezone</Label>
-            <Input id="timezone" defaultValue="Asia/Kolkata (IST)" />
-          </div>
-          <div>
-            <Label htmlFor="dateformat">Date Format</Label>
-            <Input id="dateformat" defaultValue="DD/MM/YYYY" />
-          </div>
-          <div>
-            <Label htmlFor="timeformat">Time Format</Label>
-            <Input id="timeformat" defaultValue="12-hour (AM/PM)" />
-          </div>
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }

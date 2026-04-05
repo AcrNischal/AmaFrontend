@@ -240,6 +240,7 @@ const App = () => {
               <Route path="reports" element={<AdminReports />} />
               <Route path="global-analytics" element={<SuperAdminAnalytics />} />
               <Route path="tables" element={<AdminTables />} />
+              <Route path="settings" element={<AdminSettings />} />
             </Route>
 
             {/* Optional: redirect base role paths */}

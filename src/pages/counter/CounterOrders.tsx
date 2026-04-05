@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { format, parseISO } from "date-fns";
-import { fetchInvoices, addPayment, fetchProducts } from "@/api/index.js";
+import { fetchInvoices, addPayment, fetchProducts, fetchBranch } from "@/api/index.js";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -53,6 +53,7 @@ export default function CounterOrders() {
     // Payment States
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<any>(null);
+    const [branchInfo, setBranchInfo] = useState<any>(null);
     const [paymentAmount, setPaymentAmount] = useState("");
     const [paymentMethod, setPaymentMethod] = useState<"CASH" | "ONLINE" | "QR">("CASH");
     const [paymentNotes, setPaymentNotes] = useState("");
@@ -96,9 +97,6 @@ export default function CounterOrders() {
         }
     }, [showReceipt, autoPrint]);
 
-    useEffect(() => {
-        setCurrentUser(getCurrentUser());
-    }, []);
 
     const loadProducts = useCallback(async () => {
         try {
@@ -143,6 +141,17 @@ export default function CounterOrders() {
     }, []);
 
     useEffect(() => {
+        const user = getCurrentUser();
+        setCurrentUser(user);
+        if (user?.branch_id) {
+            console.log("🏪 Fetching branch info for branch ID:", user.branch_id);
+            fetchBranch(user.branch_id).then(data => {
+                console.log("✅ Received Branch Info:", data);
+                if (data.success) setBranchInfo(data.data);
+            }).catch(err => {
+                console.error("❌ Failed to fetch branch info:", err);
+            });
+        }
         loadInvoices();
         loadProducts();
     }, [loadInvoices, loadProducts]);
@@ -171,14 +180,14 @@ export default function CounterOrders() {
     const handlePayOpen = (order: any) => {
         setSelectedOrder(order);
         setPaymentAmount(order.due_amount || (order.total_amount - (order.paid_amount || 0)));
-        
+
         // Pick a sensitive default for waiter-handled orders
         if (order.received_by_waiter && !order.received_by_counter && order.payment_methods?.length > 0) {
             setPaymentMethod(order.payment_methods[0] as any);
         } else {
             setPaymentMethod("CASH");
         }
-        
+
         setPaymentNotes("");
         setActiveTab("payment");
         setShowDetailModal(true);
@@ -194,14 +203,14 @@ export default function CounterOrders() {
     const handleRowClick = (order: any) => {
         setSelectedOrder(order);
         setPaymentAmount(order.due_amount || (order.total_amount - (order.paid_amount || 0)));
-        
+
         // Pick a sensitive default for waiter-handled orders
         if (order.received_by_waiter && !order.received_by_counter && order.payment_methods?.length > 0) {
             setPaymentMethod(order.payment_methods[0] as any);
         } else {
             setPaymentMethod("CASH");
         }
-        
+
         setPaymentNotes("");
         setActiveTab(order.payment_status === 'PAID' ? "items" : "payment");
         setShowDetailModal(true);
@@ -304,8 +313,8 @@ export default function CounterOrders() {
 </head>
 <body>
     <div class="thermal-header">
-        <div class="thermal-title">AMA BAKERY</div>
-        <div class="thermal-subtitle">Tel: 9816020731</div>
+        <div class="thermal-title">${branchInfo?.receipt_header || "AMA BAKERY"}</div>
+        <div class="thermal-subtitle">Tel: ${branchInfo?.phone || "9816020731"}</div>
     </div>
     
     <div class="thermal-divider"></div>
@@ -365,12 +374,9 @@ export default function CounterOrders() {
     </div>
 
     <div class="thermal-footer">
-        THANK YOU FOR YOUR VISIT!
+        ${branchInfo?.receipt_footer || "THANK YOU FOR YOUR VISIT!"}
     </div>
     <div class="thermal-barcode">
-    </div>
-    <div class="thermal-branding">
-        POS-BY: DragUpTech
     </div>
 
     <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();};};</script>
@@ -709,54 +715,54 @@ export default function CounterOrders() {
             {/* Order Details / Payment Dialog - Non-modal to allow external keyboard */}
             <Dialog open={showDetailModal} onOpenChange={setShowDetailModal} modal={false}>
                 {showDetailModal && (
-                    <div 
-                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[40] animate-in fade-in duration-300" 
+                    <div
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[40] animate-in fade-in duration-300"
                         onClick={() => !showKeypad && setShowDetailModal(false)}
                     />
                 )}
-                <DialogContent 
+                <DialogContent
                     onInteractOutside={(e) => {
                         const target = e.target as HTMLElement;
                         if (target?.closest('.global-keyboard') || target?.closest('.keyboard-backdrop')) {
                             e.preventDefault();
                         }
                     }}
-                    className="max-w-[480px] p-0 overflow-hidden border-none shadow-3xl rounded-[2.5rem] z-[50]"
+                    className="max-w-[460px] p-0 overflow-hidden border border-slate-200 shadow-xl rounded-2xl z-[50]"
                 >
                     <div className="bg-white">
-                        <div className="p-6 pb-2">
+                        <div className="px-6 pt-6 pb-4">
                             <DialogHeader>
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <DialogTitle className="text-2xl font-black text-slate-800">Order Details</DialogTitle>
+                                            <DialogTitle className="text-xl font-semibold text-slate-900">Order Details</DialogTitle>
                                             {(() => {
                                                 const tableMatch = (selectedOrder?.description || selectedOrder?.invoice_description || "").match(/Table (\d+)/);
                                                 const tableNo = selectedOrder?.table_no || (tableMatch ? tableMatch[1] : null);
                                                 return tableNo && (
-                                                    <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                                                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 font-medium">
                                                         Table {tableNo}
                                                     </span>
                                                 );
                                             })()}
                                         </div>
-                                        <p className="text-sm text-slate-400 font-medium">#{selectedOrder?.invoice_number} • {selectedOrder?.customer_name || 'Walk-in'}</p>
+                                        <p className="text-sm text-slate-400 mt-0.5">#{selectedOrder?.invoice_number} · {selectedOrder?.customer_name || 'Walk-in'}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Grand Total</p>
-                                        <p className="text-2xl font-black text-primary">Rs.{selectedOrder?.total_amount}</p>
+                                        <p className="text-xs text-slate-400 font-medium">Total</p>
+                                        <p className="text-xl font-semibold text-slate-900">Rs.{selectedOrder?.total_amount}</p>
                                     </div>
                                 </div>
                             </DialogHeader>
                         </div>
 
                         {/* Tabs */}
-                        <div className="px-6 flex border-b">
+                        <div className="px-6 flex gap-1 border-b border-slate-100">
                             <button
                                 onClick={() => setActiveTab("payment")}
                                 className={cn(
-                                    "flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all",
-                                    activeTab === "payment" ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600"
+                                    "flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors",
+                                    activeTab === "payment" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-400 hover:text-slate-600"
                                 )}
                             >
                                 <Banknote className="h-4 w-4" />
@@ -765,48 +771,51 @@ export default function CounterOrders() {
                             <button
                                 onClick={() => setActiveTab("items")}
                                 className={cn(
-                                    "flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all",
-                                    activeTab === "items" ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600"
+                                    "flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors",
+                                    activeTab === "items" ? "border-slate-900 text-slate-900" : "border-transparent text-slate-400 hover:text-slate-600"
                                 )}
                             >
                                 <FileText className="h-4 w-4" />
-                                Order Items
+                                Items
                             </button>
                         </div>
 
-                        <div className="p-6 pt-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                        <div className="p-6 max-h-[60vh] overflow-y-auto">
                             {activeTab === "payment" ? (
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                                        <div className="space-y-1">
-                                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Paid Amount</p>
-                                            <p className="text-xl font-black text-emerald-600">Rs.{selectedOrder?.paid_amount || 0}</p>
+                                <div className="space-y-5">
+                                    {/* Paid / Due */}
+                                    <div className="grid grid-cols-2 gap-4 p-5 rounded-xl bg-slate-50">
+                                        <div>
+                                            <p className="text-xs text-slate-400 font-medium mb-1">Paid</p>
+                                            <p className="text-lg font-semibold text-emerald-600">Rs.{selectedOrder?.paid_amount || 0}</p>
                                         </div>
-                                        <div className="space-y-1 text-right">
-                                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Due Balance</p>
-                                            <p className="text-xl font-black text-slate-800">Rs.{selectedOrder?.due_amount || (selectedOrder ? (selectedOrder.total_amount - (selectedOrder.paid_amount || 0)) : 0)}</p>
+                                        <div className="text-right">
+                                            <p className="text-xs text-slate-400 font-medium mb-1">Due</p>
+                                            <p className="text-lg font-semibold text-slate-900">Rs.{selectedOrder?.due_amount || (selectedOrder ? (selectedOrder.total_amount - (selectedOrder.paid_amount || 0)) : 0)}</p>
                                         </div>
                                     </div>
 
+                                    {/* Receipt Log */}
                                     {(selectedOrder?.received_by_waiter_name || selectedOrder?.received_by_counter_name) && (
-                                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
-                                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Payment Receipt Log</p>
-                                            <div className="flex justify-between items-center text-xs">
+                                        <div className="p-4 rounded-xl bg-slate-50 space-y-2">
+                                            <p className="text-xs text-slate-400 font-medium">Receipt Log</p>
+                                            <div className="flex justify-between text-sm">
                                                 {selectedOrder?.received_by_waiter_name && (
-                                                    <div className="flex flex-col">
-                                                        <span className="text-slate-400 font-medium">Waiter Handled:</span>
-                                                        <span className="font-bold text-indigo-600">{selectedOrder.received_by_waiter_name}</span>
+                                                    <div>
+                                                        <span className="text-slate-400 text-xs">Waiter: </span>
+                                                        <span className="font-medium text-slate-700">{selectedOrder.received_by_waiter_name}</span>
                                                     </div>
                                                 )}
                                                 {selectedOrder?.received_by_counter_name && (
-                                                    <div className="flex flex-col text-right">
-                                                        <span className="text-slate-400 font-medium">Counter Received:</span>
-                                                        <span className="font-bold text-emerald-600">{selectedOrder.received_by_counter_name}</span>
+                                                    <div className="text-right">
+                                                        <span className="text-slate-400 text-xs">Counter: </span>
+                                                        <span className="font-medium text-slate-700">{selectedOrder.received_by_counter_name}</span>
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
-                                    )}                                    {(selectedOrder?.payment_status !== 'PAID' && parseFloat(selectedOrder?.due_amount || "0") > 0) ? (() => {
+                                    )}
+                                    {(selectedOrder?.payment_status !== 'PAID' && parseFloat(selectedOrder?.due_amount || "0") > 0) ? (() => {
                                         const currentDue = parseFloat(selectedOrder?.due_amount || (selectedOrder ? (selectedOrder.total_amount - (selectedOrder.paid_amount || 0)) : 0));
                                         const changeAmount = Math.max(0, parseFloat(paymentAmount || "0") - currentDue);
 
@@ -874,8 +883,8 @@ export default function CounterOrders() {
                                                     onClick={handlePaymentSubmit}
                                                     disabled={isPaying}
                                                 >
-                                                    {isPaying ? <Loader2 className="h-6 w-6 animate-spin" /> : 
-                                                     (selectedOrder?.payment_status === 'WAITER RECEIVED' ? "Confirm & Finalize" : "Receive Payment")}
+                                                    {isPaying ? <Loader2 className="h-6 w-6 animate-spin" /> :
+                                                        (selectedOrder?.payment_status === 'WAITER RECEIVED' ? "Confirm & Finalize" : "Receive Payment")}
                                                 </Button>
                                             </div>
                                         );
@@ -1002,8 +1011,8 @@ export default function CounterOrders() {
                         </div>
                         <div className="thermal-receipt printable-receipt" id="bill-print-root">
                             <div className="thermal-header">
-                                <h1 className="thermal-title">AMA BAKERY</h1>
-                                <div className="thermal-subtitle">Tel: 9816020731</div>
+                                <h1 className="thermal-title">{branchInfo?.receipt_header || "AMA BAKERY"}</h1>
+                                <div className="thermal-subtitle">Tel: {branchInfo?.phone || "9816020731"}</div>
                             </div>
 
                             <div className="thermal-divider"></div>
@@ -1089,12 +1098,9 @@ export default function CounterOrders() {
                             </div>
 
                             <div className="thermal-footer">
-                                THANK YOU FOR YOUR VISIT!
+                                {branchInfo?.receipt_footer || "THANK YOU FOR YOUR VISIT!"}
                             </div>
                             <div className="thermal-barcode">
-                            </div>
-                            <div className="thermal-branding">
-                                POS-BY: DragUpTech
                             </div>
                         </div>
                     </div>
@@ -1103,174 +1109,174 @@ export default function CounterOrders() {
             {/* Global Floating Virtual Keyboard */}
             {showKeypad && activeKeypadField && (
                 <>
-                {/* Backdrop Layer to capture outside clicks and block background actions */}
-                <div 
-                    className="fixed inset-0 z-[999] bg-transparent pointer-events-auto keyboard-backdrop"
-                    onMouseDown={(e) => {
-                        e.stopPropagation();
-                        setShowKeypad(false);
-                        (document.activeElement as HTMLElement)?.blur();
-                    }}
-                />
-                <div 
-                    ref={keyboardRef as any}
-                    onMouseDown={(e) => e.stopPropagation()} // Prevent closing when clicking inside
-                    className="global-keyboard fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md border-t-2 border-primary/20 shadow-[0_-15px_40px_-10px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-full duration-300 p-2 md:p-4 pointer-events-auto"
-                >
-                    <div className="max-w-7xl mx-auto">
-                        <div className="flex items-center justify-between mb-2 px-1">
-                            <div className="flex items-center gap-2">
-                                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-primary">
-                                    {activeKeypadField === 'payment' ? 'Payment Amount' : 
-                                     activeKeypadField === 'search' ? 'Search Orders' : 'Virtual Keyboard'}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    onClick={() => {
-                                        if (activeKeypadField === 'search') setSearchQuery("");
-                                        else if (activeKeypadField === 'payment') setPaymentAmount("");
-                                    }}
-                                    className="h-7 px-2 text-[9px] font-black uppercase text-slate-400 hover:text-destructive"
-                                >
-                                    Clear
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    onClick={() => {
-                                        setShowKeypad(false);
-                                        (document.activeElement as HTMLElement)?.blur();
-                                    }}
-                                    className="h-6 w-6 rounded-full shadow-inner"
-                                >
-                                    <X className="h-3 w-3" />
-                                </Button>
-                            </div>
-                        </div>
-
-                        {/* Keyboard Layouts */}
-                        {(activeKeypadField === 'search') ? (
-                            <div className="space-y-1 select-none">
-                                {[
-                                    '1234567890',
-                                    'QWERTYUIOP',
-                                    'ASDFGHJKL',
-                                    'ZXCVBNM'
-                                ].map((row, rIdx) => (
-                                    <div key={rIdx} className="flex justify-center gap-1">
-                                        {row.split('').map(char => (
-                                            <Button
-                                                key={char}
-                                                variant="outline"
-                                                onMouseDown={(e) => e.preventDefault()}
-                                                className="h-12 md:h-16 min-w-[40px] md:min-w-[85px] flex-1 md:flex-none text-sm md:text-xl font-black rounded-xl border shadow-sm active:scale-95 bg-white hover:border-primary/40 transition-all p-0"
-                                                onClick={() => {
-                                                    setSearchQuery(prev => prev + char);
-                                                }}
-                                            >
-                                                {char}
-                                            </Button>
-                                        ))}
-                                        {rIdx === 3 && (
-                                            <Button
-                                                variant="outline"
-                                                className="h-12 md:h-16 px-6 md:px-12 text-sm md:text-xl font-black rounded-xl border-2 border-primary/20 bg-primary/5 text-primary active:scale-95"
-                                                onMouseDown={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    // Initial character delete
-                                                    setSearchQuery(prev => prev.slice(0, -1));
-                                                    
-                                                    stopBackspace();
-                                                    backspaceTimeoutRef.current = setTimeout(() => {
-                                                        backspaceIntervalRef.current = setInterval(() => {
-                                                            setSearchQuery(prev => deleteWord(prev));
-                                                        }, 150);
-                                                    }, 400);
-                                                }}
-                                                onMouseUp={stopBackspace}
-                                                onMouseLeave={stopBackspace}
-                                                onTouchEnd={stopBackspace}
-                                            >
-                                                ⌫
-                                            </Button>
-                                        )}
-                                    </div>
-                                ))}
-                                <div className="flex justify-center gap-1.5 mt-1">
+                    {/* Backdrop Layer to capture outside clicks and block background actions */}
+                    <div
+                        className="fixed inset-0 z-[999] bg-transparent pointer-events-auto keyboard-backdrop"
+                        onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setShowKeypad(false);
+                            (document.activeElement as HTMLElement)?.blur();
+                        }}
+                    />
+                    <div
+                        ref={keyboardRef as any}
+                        onMouseDown={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+                        className="global-keyboard fixed bottom-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-md border-t-2 border-primary/20 shadow-[0_-15px_40px_-10px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-full duration-300 p-2 md:p-4 pointer-events-auto"
+                    >
+                        <div className="max-w-7xl mx-auto">
+                            <div className="flex items-center justify-between mb-2 px-1">
+                                <div className="flex items-center gap-2">
+                                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.15em] text-primary">
+                                        {activeKeypadField === 'payment' ? 'Payment Amount' :
+                                            activeKeypadField === 'search' ? 'Search Orders' : 'Virtual Keyboard'}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3">
                                     <Button
-                                        variant="outline"
+                                        variant="ghost"
+                                        size="sm"
                                         onMouseDown={(e) => e.preventDefault()}
-                                        className="h-12 md:h-16 flex-1 max-w-[800px] text-xs md:text-sm font-black rounded-xl border bg-slate-50 active:scale-95 uppercase tracking-widest shadow-inner"
                                         onClick={() => {
-                                            setSearchQuery(prev => prev + " ");
+                                            if (activeKeypadField === 'search') setSearchQuery("");
+                                            else if (activeKeypadField === 'payment') setPaymentAmount("");
                                         }}
+                                        className="h-7 px-2 text-[9px] font-black uppercase text-slate-400 hover:text-destructive"
                                     >
-                                        Space
+                                        Clear
                                     </Button>
                                     <Button
+                                        variant="secondary"
+                                        size="icon"
                                         onMouseDown={(e) => e.preventDefault()}
-                                        className="h-12 md:h-16 px-10 md:px-20 text-xs md:text-sm font-black rounded-xl bg-primary text-white shadow-lg active:scale-95 uppercase tracking-widest"
                                         onClick={() => {
-                                        setShowKeypad(false);
-                                        (document.activeElement as HTMLElement)?.blur();
-                                    }}
+                                            setShowKeypad(false);
+                                            (document.activeElement as HTMLElement)?.blur();
+                                        }}
+                                        className="h-6 w-6 rounded-full shadow-inner"
                                     >
-                                        Done
+                                        <X className="h-3 w-3" />
                                     </Button>
                                 </div>
                             </div>
-                        ) : (
-                            <div className="max-w-[360px] md:max-w-md mx-auto grid grid-cols-3 gap-3 md:gap-4">
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, "00", 0, "⌫"].map((key) => (
+
+                            {/* Keyboard Layouts */}
+                            {(activeKeypadField === 'search') ? (
+                                <div className="space-y-1 select-none">
+                                    {[
+                                        '1234567890',
+                                        'QWERTYUIOP',
+                                        'ASDFGHJKL',
+                                        'ZXCVBNM'
+                                    ].map((row, rIdx) => (
+                                        <div key={rIdx} className="flex justify-center gap-1">
+                                            {row.split('').map(char => (
+                                                <Button
+                                                    key={char}
+                                                    variant="outline"
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    className="h-12 md:h-16 min-w-[40px] md:min-w-[85px] flex-1 md:flex-none text-sm md:text-xl font-black rounded-xl border shadow-sm active:scale-95 bg-white hover:border-primary/40 transition-all p-0"
+                                                    onClick={() => {
+                                                        setSearchQuery(prev => prev + char);
+                                                    }}
+                                                >
+                                                    {char}
+                                                </Button>
+                                            ))}
+                                            {rIdx === 3 && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="h-12 md:h-16 px-6 md:px-12 text-sm md:text-xl font-black rounded-xl border-2 border-primary/20 bg-primary/5 text-primary active:scale-95"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        // Initial character delete
+                                                        setSearchQuery(prev => prev.slice(0, -1));
+
+                                                        stopBackspace();
+                                                        backspaceTimeoutRef.current = setTimeout(() => {
+                                                            backspaceIntervalRef.current = setInterval(() => {
+                                                                setSearchQuery(prev => deleteWord(prev));
+                                                            }, 150);
+                                                        }, 400);
+                                                    }}
+                                                    onMouseUp={stopBackspace}
+                                                    onMouseLeave={stopBackspace}
+                                                    onTouchEnd={stopBackspace}
+                                                >
+                                                    ⌫
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <div className="flex justify-center gap-1.5 mt-1">
+                                        <Button
+                                            variant="outline"
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            className="h-12 md:h-16 flex-1 max-w-[800px] text-xs md:text-sm font-black rounded-xl border bg-slate-50 active:scale-95 uppercase tracking-widest shadow-inner"
+                                            onClick={() => {
+                                                setSearchQuery(prev => prev + " ");
+                                            }}
+                                        >
+                                            Space
+                                        </Button>
+                                        <Button
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            className="h-12 md:h-16 px-10 md:px-20 text-xs md:text-sm font-black rounded-xl bg-primary text-white shadow-lg active:scale-95 uppercase tracking-widest"
+                                            onClick={() => {
+                                                setShowKeypad(false);
+                                                (document.activeElement as HTMLElement)?.blur();
+                                            }}
+                                        >
+                                            Done
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="max-w-[360px] md:max-w-md mx-auto grid grid-cols-3 gap-3 md:gap-4">
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, "00", 0, "⌫"].map((key) => (
+                                        <Button
+                                            key={key.toString()}
+                                            variant="outline"
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            className={cn(
+                                                "h-14 md:h-16 text-xl md:text-3xl font-black rounded-2xl transition-all active:scale-90 bg-white hover:bg-slate-50 border-2 shadow-sm p-0",
+                                                key === "⌫" ? "text-destructive border-destructive/20 bg-destructive/5" : "hover:border-primary/40"
+                                            )}
+                                            onClick={() => {
+                                                if (activeKeypadField === 'payment') {
+                                                    if (key === "⌫") setPaymentAmount(prev => (prev.toString().length > 0 ? prev.toString().slice(0, -1) : ""));
+                                                    else if (key === "00") setPaymentAmount(prev => {
+                                                        const newVal = `${prev}00`;
+                                                        return parseFloat(newVal) <= 1000000 ? newVal : prev;
+                                                    });
+                                                    else setPaymentAmount(prev => {
+                                                        // If prev is "0" or the field was just pre-filled (numeric type), we might want to replace,
+                                                        // but for now let's just ensure string concatenation.
+                                                        const current = prev.toString();
+                                                        const newVal = current === "0" ? key.toString() : `${current}${key}`;
+                                                        return parseFloat(newVal) <= 1000000 ? newVal : prev;
+                                                    });
+                                                }
+                                            }}
+                                        >
+                                            {key}
+                                        </Button>
+                                    ))}
                                     <Button
-                                        key={key.toString()}
-                                        variant="outline"
                                         onMouseDown={(e) => e.stopPropagation()}
-                                        className={cn(
-                                            "h-14 md:h-16 text-xl md:text-3xl font-black rounded-2xl transition-all active:scale-90 bg-white hover:bg-slate-50 border-2 shadow-sm p-0",
-                                            key === "⌫" ? "text-destructive border-destructive/20 bg-destructive/5" : "hover:border-primary/40"
-                                        )}
+                                        className="col-span-3 h-14 md:h-16 text-base md:text-xl font-black rounded-2xl bg-primary text-white shadow-xl active:scale-95 uppercase tracking-widest mt-2"
                                         onClick={() => {
-                                            if (activeKeypadField === 'payment') {
-                                                if (key === "⌫") setPaymentAmount(prev => (prev.toString().length > 0 ? prev.toString().slice(0, -1) : ""));
-                                                else if (key === "00") setPaymentAmount(prev => {
-                                                    const newVal = `${prev}00`;
-                                                    return parseFloat(newVal) <= 1000000 ? newVal : prev;
-                                                });
-                                                else setPaymentAmount(prev => {
-                                                    // If prev is "0" or the field was just pre-filled (numeric type), we might want to replace,
-                                                    // but for now let's just ensure string concatenation.
-                                                    const current = prev.toString();
-                                                    const newVal = current === "0" ? key.toString() : `${current}${key}`;
-                                                    return parseFloat(newVal) <= 1000000 ? newVal : prev;
-                                                });
-                                            }
+                                            setShowKeypad(false);
+                                            (document.activeElement as HTMLElement)?.blur();
                                         }}
                                     >
-                                        {key}
+                                        Confirm
                                     </Button>
-                                ))}
-                                <Button
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    className="col-span-3 h-14 md:h-16 text-base md:text-xl font-black rounded-2xl bg-primary text-white shadow-xl active:scale-95 uppercase tracking-widest mt-2"
-                                    onClick={() => {
-                                        setShowKeypad(false);
-                                        (document.activeElement as HTMLElement)?.blur();
-                                    }}
-                                >
-                                    Confirm
-                                </Button>
-                            </div>
-                        )}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
                 </>
             )}
         </div>

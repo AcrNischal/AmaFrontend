@@ -29,6 +29,7 @@ const allNavItems = [
   { icon: FileBarChart, label: "Reports", path: "/admin/dashboard/reports" },
   { icon: BarChart3, label: "Global Analytics", path: "/admin/dashboard/global-analytics" },
   { icon: UtensilsCrossed, label: "Table Management", path: "/admin/dashboard/tables" },
+  { icon: Settings, label: "Settings", path: "/admin/dashboard/settings" },
 ];
 
 interface AdminSidebarProps {

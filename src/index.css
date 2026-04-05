@@ -352,13 +352,6 @@
   font-size: 30pt;
 }
 
-.thermal-branding {
-  text-align: center;
-  font-size: 7pt;
-  color: #888 !important;
-  margin-top: 2mm;
-}
-
 @media print {
   @page {
     margin: 0;

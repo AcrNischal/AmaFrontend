@@ -435,6 +435,13 @@ export async function deleteCategory(id) {
   return data;
 }
 
+export async function fetchBranch(id) {
+  const res = await apiFetch(`/api/branch/${id}/`);
+  const data = await safeJson(res);
+  if (!res.ok) throw new Error(data?.message || "Failed to fetch branch");
+  return data;
+}
+
 export async function fetchBranches() {
   const res = await apiFetch("/api/branch/");
   const data = await safeJson(res);
