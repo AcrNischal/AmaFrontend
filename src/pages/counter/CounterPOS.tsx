@@ -38,7 +38,6 @@ import { cn } from "@/lib/utils";
 import { logout, getCurrentUser } from "../../auth/auth";
 import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
 import { CustomerSelector } from "@/components/pos/CustomerSelector";
-import { FloorSelector } from "@/components/pos/FloorSelector";
 import { fetchProducts, fetchCategories, createInvoice, fetchInvoices, fetchBranch } from "@/api/index.js";
 import { MenuItem, User as UserType } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
@@ -77,7 +76,7 @@ export default function CounterPOS() {
     const [products, setProducts] = useState<MenuItem[]>([]);
     const [categories, setCategories] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedCategory, setSelectedCategory] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState("All");
     const [showChangePassword, setShowChangePassword] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [cart, setCart] = useState<CartItemData[]>([]);
@@ -138,35 +137,68 @@ export default function CounterPOS() {
 
     const loadData = async () => {
         setLoading(true);
+        const user = getCurrentUser();
+        console.log("🏪 (POS) Starting data fetch for user:", user);
+
         try {
-            const user = getCurrentUser();
-            console.log("🏪 (POS) Fetching data for user:", user);
-            const [productsData, categoriesData, branchData] = await Promise.all([
-                fetchProducts(),
-                fetchCategories(),
-                user?.branch_id ? fetchBranch(user.branch_id) : Promise.resolve(null)
+            // Fetch everything in parallel but catch individual errors to prevent blocking
+            const [productsResponse, categoriesResponse, branchResponse] = await Promise.all([
+                fetchProducts().catch(err => {
+                    console.error("❌ fetchProducts failed:", err);
+                    return null;
+                }),
+                fetchCategories().catch(err => {
+                    console.error("❌ fetchCategories failed:", err);
+                    return null;
+                }),
+                user?.branch_id ? fetchBranch(user.branch_id).catch(err => {
+                    console.error("⚠️ fetchBranch failed (non-critical):", err);
+                    return null;
+                }) : Promise.resolve(null)
             ]);
 
-            console.log("🏪 (POS) Branch Data received:", branchData);
-            if (branchData && branchData.success) {
-                setBranchInfo(branchData.data);
+            // 1. Process Branch Info (Non-critical)
+            if (branchResponse && branchResponse.success) {
+                setBranchInfo(branchResponse.data);
+            } else if (branchResponse) {
+                // If it's the raw branch data without 'success' wrapper (check API)
+                setBranchInfo(branchResponse);
             }
 
-            const mappedProducts: any[] = productsData.map((p: any) => ({
-                id: p.id.toString(),
-                name: p.name,
-                price: parseFloat(p.selling_price),
-                category: p.category_name,
-                available: p.is_available,
-                image: p.image || undefined
-            }));
+            // 2. Process Products (Critical but we already checked Array.isArray)
+            if (Array.isArray(productsResponse)) {
+                const mappedProducts: any[] = productsResponse.map((p: any) => ({
+                    id: p.id.toString(),
+                    name: p.name,
+                    price: parseFloat(p.selling_price) || 0,
+                    category: p.category_name,
+                    available: p.is_available,
+                    image: p.image || undefined
+                }));
+                setProducts(mappedProducts);
+            } else {
+                console.warn("⚠️ Products data is missing or invalid format.");
+                if (!categoriesResponse) {
+                    // Both critical items failed
+                    throw new Error("Critical POS data (products/categories) failed to load.");
+                }
+            }
 
-            setProducts(mappedProducts);
-            const categoryNames = ["All", ...categoriesData.map((cat: any) => cat.name).sort()];
-            setCategories(categoryNames);
+            // 3. Process Categories (Critical for UI but we can default to All)
+            if (Array.isArray(categoriesResponse)) {
+                const categoryNames = ["All", ...categoriesResponse.map((cat: any) => cat.name).sort()];
+                setCategories(categoryNames);
+            } else {
+                setCategories(["All"]);
+                console.warn("⚠️ Categories data is missing, defaulting to 'All'.");
+            }
+            
+            // Always ensure "All" is selected if it was the previous intent
             setSelectedCategory("All");
+
         } catch (err: any) {
-            toast.error("Failed to load POS data");
+            console.error("🚨 POS Load critical failure:", err);
+            toast.error("POS system failed to initialize properly. Please contact support.");
         } finally {
             setLoading(false);
         }
@@ -256,7 +288,7 @@ export default function CounterPOS() {
 
     const filteredItems = useMemo(() => {
         let items = products;
-        if (selectedCategory !== "All") {
+        if (selectedCategory && selectedCategory !== "All") {
             items = items.filter(item => item.category === selectedCategory);
         }
         if (searchQuery.trim()) {
@@ -359,8 +391,8 @@ export default function CounterPOS() {
             const invoiceData = {
                 branch: user?.branch_id,
                 customer: customer?.id || null,
-                floor: selectedFloor?.id || null,
-                table_no: parseInt(tableNo) || 1,
+                floor: null,
+                table_no: 1,
                 invoice_type: "SALE",
                 description: "Counter Sale",
                 tax_amount: taxAmount,
@@ -601,52 +633,6 @@ export default function CounterPOS() {
 
                 {/* Left Side: Menu Selection */}
                 <section className="flex-1 flex flex-col overflow-hidden p-6 gap-6">
-                    {/* Floor & Table Info Bar */}
-                    <div className="flex flex-col sm:flex-row items-end gap-4 bg-white p-5 rounded-[2rem] border-2 border-slate-200 shadow-sm shrink-0">
-                        <div className="flex-1 w-full space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Location / Floor</Label>
-                            <div className="relative w-full">
-                                <FloorSelector
-                                    selectedFloorId={selectedFloor?.id}
-                                    onSelect={(f) => {
-                                        setSelectedFloor(f);
-                                        if (f) setTableNo("1");
-                                    }}
-                                    compact={true}
-                                />
-                            </div>
-                        </div>
-                        <div className="w-full sm:w-auto min-w-[140px] space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Table</Label>
-                            <div className="flex items-center gap-2 bg-slate-50 p-1 px-2 rounded-xl border h-11">
-                                <button
-                                    onClick={() => setTableNo(prev => Math.max(1, parseInt(prev) - 1).toString())}
-                                    className="h-8 w-8 flex items-center justify-center hover:text-primary transition-colors bg-white rounded-lg shadow-sm border"
-                                >
-                                    <Minus className="h-3 w-3" />
-                                </button>
-                                <Input
-                                    value={tableNo}
-                                    onFocus={() => {
-                                        setActiveKeypadField('table');
-                                        setShowKeypad(true);
-                                    }}
-                                    onChange={(e) => setTableNo(e.target.value)}
-                                    className="w-10 text-center font-bold border-none bg-transparent h-8 focus-visible:ring-0 text-sm p-0"
-                                />
-                                <button
-                                    onClick={() => {
-                                        const max = selectedFloor?.table_count || 100;
-                                        setTableNo(prev => Math.min(max, parseInt(prev) + 1).toString());
-                                    }}
-                                    className="h-8 w-8 flex items-center justify-center hover:text-primary transition-colors bg-white rounded-lg shadow-sm border"
-                                >
-                                    <Plus className="h-3 w-3" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Search & Categories */}
                     <div className="flex flex-col gap-4 shrink-0">
                         <div className="relative">
