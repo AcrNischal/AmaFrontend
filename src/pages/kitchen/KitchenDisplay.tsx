@@ -31,7 +31,7 @@ import {
 import { toast } from "sonner";
 import { getCurrentUser, logout } from "../../auth/auth";
 import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
-import { fetchInvoices, fetchProducts, fetchCategories, updateInvoiceStatus, fetchTables, getAccessToken } from "../../api/index.js";
+import { fetchInvoices, fetchProducts, fetchCategories, updateInvoiceStatus, fetchTables, fetchInvoiceDetail, getAccessToken } from "../../api/index.js";
 import { WS_BASE_URL } from "../../api/config";
 
 export default function KitchenDisplay() {
@@ -122,16 +122,31 @@ export default function KitchenDisplay() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [invoiceData, productData, categoryData, floorData] = await Promise.all([
+      const [invoiceRes, productData, categoryData, floorData] = await Promise.all([
         fetchInvoices(),
         fetchProducts(),
         fetchCategories(),
         fetchTables()
       ]);
 
-      setProducts(productData || []);
-      setCategories(categoryData || []);
-      setFloors(floorData || []);
+      const basicInvoices = invoiceRes.results || invoiceRes;
+      
+      // Filter only active invoices that need to be displayed in the kitchen
+      const activeInvoices = (basicInvoices || []).filter((inv: any) => 
+        inv && inv.is_active && (inv.invoice_status === 'PENDING' || inv.invoice_status === 'READY' || inv.invoice_status === 'COMPLETED')
+      );
+
+      // Fetch full details for each active invoice to get items mapping
+      const detailedInvoices = await Promise.all(
+        activeInvoices.map(async (inv: any) => {
+          try {
+            return await fetchInvoiceDetail(inv.id);
+          } catch (err) {
+            console.error(`Failed to fetch detail for invoice ${inv.id}:`, err);
+            return inv; // Fallback to basic info if detail fetch fails
+          }
+        })
+      );
 
       const productsMap = (productData || []).reduce((acc: any, p: any) => {
         if (p && p.id) {
@@ -140,8 +155,7 @@ export default function KitchenDisplay() {
         return acc;
       }, {});
 
-      const mappedInvoices = (invoiceData || [])
-        .filter((inv: any) => inv && inv.is_active && (inv.invoice_status === 'PENDING' || inv.invoice_status === 'READY' || inv.invoice_status === 'COMPLETED'))
+      const mappedInvoices = detailedInvoices
         .map((inv: any) => {
           const tableMatch = (inv.description || inv.invoice_description || "").match(/Table (\d+)/);
           const tableNumber = inv.table_no || (tableMatch ? parseInt(tableMatch[1]) : 0);

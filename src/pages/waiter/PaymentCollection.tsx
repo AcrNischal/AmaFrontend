@@ -32,7 +32,8 @@ export default function PaymentCollection() {
   const loadInvoices = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchInvoices();
+      const response = await fetchInvoices();
+      const data = response.results || response;
       // Filter for orders that are NOT fully paid yet
       const pendingPayments = (data || []).filter(
         (o: any) => o.payment_status !== "PAID" && o.invoice_status !== "CANCELLED"

@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { format, parseISO } from "date-fns";
-import { fetchInvoices, addPayment, fetchProducts, fetchBranch } from "@/api/index.js";
+import { fetchInvoices, addPayment, fetchProducts, fetchBranch, fetchInvoiceDetail } from "@/api/index.js";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -68,7 +68,8 @@ export default function CounterOrders() {
 
     // Global Keyboard State
     const [showKeypad, setShowKeypad] = useState(false);
-    const [activeKeypadField, setActiveKeypadField] = useState<'search' | 'payment' | null>(null);
+    const [isFetchingDetail, setIsFetchingDetail] = useState(false);
+    const [activeKeypadField, setActiveKeypadField] = useState<'payment' | 'search' | null>(null);
     const keyboardRef = useRef<HTMLDivElement>(null);
     const backspaceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const backspaceIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -120,7 +121,8 @@ export default function CounterOrders() {
     const loadInvoices = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await fetchInvoices();
+            const response = await fetchInvoices();
+            const data = response.results || response;
             if (Array.isArray(data)) {
                 // Filter locally to avoid crashing on invalid/deleted invoices
                 const validOrders = data.filter((inv: any) =>
@@ -177,7 +179,7 @@ export default function CounterOrders() {
         )
     );
 
-    const handlePayOpen = (order: any) => {
+    const handlePayOpen = async (order: any) => {
         setSelectedOrder(order);
         setPaymentAmount(order.due_amount || (order.total_amount - (order.paid_amount || 0)));
 
@@ -191,16 +193,38 @@ export default function CounterOrders() {
         setPaymentNotes("");
         setActiveTab("payment");
         setShowDetailModal(true);
+
+        // Fetch full detail
+        setIsFetchingDetail(true);
+        try {
+            const fullDetail = await fetchInvoiceDetail(order.id);
+            setSelectedOrder(fullDetail);
+            setPaymentAmount(fullDetail.due_amount || (fullDetail.total_amount - (fullDetail.paid_amount || 0)));
+        } catch (err) {
+            console.error("Failed to fetch full order details:", err);
+        } finally {
+            setIsFetchingDetail(false);
+        }
     };
 
-    const handleRowPrint = (e: React.MouseEvent, order: any) => {
+    const handleRowPrint = async (e: React.MouseEvent, order: any) => {
         e.stopPropagation();
         setSelectedOrder(order);
-        setAutoPrint(true);
-        setShowReceipt(true);
+        setIsFetchingDetail(true);
+        try {
+            const data = await fetchInvoiceDetail(order.id);
+            setSelectedOrder(data);
+            setAutoPrint(true);
+            setShowReceipt(true);
+        } catch (err) {
+            console.error("Failed to fetch order details for printing:", err);
+            toast.error("Failed to load full bill details");
+        } finally {
+            setIsFetchingDetail(false);
+        }
     };
 
-    const handleRowClick = (order: any) => {
+    const handleRowClick = async (order: any) => {
         setSelectedOrder(order);
         setPaymentAmount(order.due_amount || (order.total_amount - (order.paid_amount || 0)));
 
@@ -214,6 +238,18 @@ export default function CounterOrders() {
         setPaymentNotes("");
         setActiveTab(order.payment_status === 'PAID' ? "items" : "payment");
         setShowDetailModal(true);
+
+        // Fetch full detail
+        setIsFetchingDetail(true);
+        try {
+            const fullDetail = await fetchInvoiceDetail(order.id);
+            setSelectedOrder(fullDetail);
+            setPaymentAmount(fullDetail.due_amount || (fullDetail.total_amount - (fullDetail.paid_amount || 0)));
+        } catch (err) {
+            console.error("Failed to fetch full order details:", err);
+        } finally {
+            setIsFetchingDetail(false);
+        }
     };
 
     const handlePaymentSubmit = async () => {
@@ -554,7 +590,6 @@ export default function CounterOrders() {
                                 <tr>
                                     <th className="px-6 py-4 text-base font-bold text-slate-700">Order ID</th>
                                     <th className="px-6 py-4 text-base font-bold text-slate-700">Table / Mode</th>
-                                    <th className="px-6 py-4 text-base font-bold text-slate-700">Items</th>
                                     <th className="px-6 py-4 text-base font-bold text-slate-700">Time</th>
                                     <th className="px-6 py-4 text-base font-bold text-slate-700">Method</th>
                                     <th className="px-6 py-4 text-base font-bold text-slate-700">Created By</th>
@@ -602,21 +637,6 @@ export default function CounterOrders() {
                                                         })()}
                                                     </span>
                                                     <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{order.customer_name || 'Walk-in'}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-5">
-                                                <div className="flex flex-col gap-0.5 max-w-[180px]">
-                                                    {order.items?.slice(0, 2).map((item: any, i: number) => {
-                                                        const productName = item.product_name || productsMap[String(item.product)]?.name || `Product #${item.product}`;
-                                                        return (
-                                                            <span key={i} className="text-sm font-medium text-slate-600 truncate">
-                                                                {item.quantity}x {productName}
-                                                            </span>
-                                                        );
-                                                    })}
-                                                    {(order.items?.length || 0) > 2 && (
-                                                        <span className="text-xs font-bold text-primary">+{order.items.length - 2} more items</span>
-                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5">
@@ -796,7 +816,11 @@ export default function CounterOrders() {
                                     </div>
 
                                     {/* Receipt Log */}
-                                    {(selectedOrder?.received_by_waiter_name || selectedOrder?.received_by_counter_name) && (
+                                    {isFetchingDetail ? (
+                                        <div className="flex justify-center py-6">
+                                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                        </div>
+                                    ) : (selectedOrder?.received_by_waiter_name || selectedOrder?.received_by_counter_name) && (
                                         <div className="p-4 rounded-xl bg-slate-50 space-y-2">
                                             <p className="text-xs text-slate-400 font-medium">Receipt Log</p>
                                             <div className="flex justify-between text-sm">
@@ -926,28 +950,37 @@ export default function CounterOrders() {
                             ) : (
                                 <div className="space-y-4 animate-in fade-in slide-in-from-top-4">
                                     <div className="space-y-3">
-                                        {selectedOrder?.items?.map((item: any, idx: number) => {
-                                            const productName = item.product_name || productsMap[String(item.product)]?.name || `Product #${item.product}`;
-                                            return (
-                                                <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center font-black text-primary border border-slate-100">
-                                                            {item.quantity}x
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-slate-800">{productName}</p>
-                                                            <p className="text-[10px] text-slate-400 font-bold">Rs.{item.unit_price} / unit</p>
-                                                        </div>
-                                                    </div>
-                                                    <p className="font-black text-slate-900">Rs.{(parseFloat(item.unit_price) * item.quantity).toFixed(2)}</p>
-                                                </div>
-                                            );
-                                        })}
-                                        {(!selectedOrder?.items || selectedOrder.items.length === 0) && (
-                                            <div className="text-center py-10 text-slate-300">
-                                                <FileText className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                                                <p className="font-bold">No items found</p>
+                                        {isFetchingDetail ? (
+                                            <div className="flex flex-col items-center justify-center py-12 gap-3">
+                                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                                <p className="text-xs font-bold text-slate-400">Loading full details...</p>
                                             </div>
+                                        ) : (
+                                            <>
+                                                {selectedOrder?.items?.map((item: any, idx: number) => {
+                                                    const productName = item.product_name || productsMap[String(item.product)]?.name || `Product #${item.product}`;
+                                                    return (
+                                                        <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center font-black text-primary border border-slate-100">
+                                                                    {item.quantity}x
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-bold text-slate-800">{productName}</p>
+                                                                    <p className="text-[10px] text-slate-400 font-bold">Rs.{item.unit_price} / unit</p>
+                                                                </div>
+                                                            </div>
+                                                            <p className="font-black text-slate-900">Rs.{(parseFloat(item.unit_price) * item.quantity).toFixed(2)}</p>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {(!selectedOrder?.items || selectedOrder.items.length === 0) && (
+                                                    <div className="text-center py-10 text-slate-300">
+                                                        <FileText className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                                                        <p className="font-bold">No items found</p>
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
                                     </div>
 
@@ -1039,20 +1072,27 @@ export default function CounterOrders() {
 
                             <div className="thermal-divider"></div>
 
-                            {selectedOrder?.items?.map((item: any, idx: number) => {
-                                const productName = item.product_name || productsMap[String(item.product)]?.name || `Product #${item.product}`;
-                                return (
-                                    <div key={idx} className="receipt-item-grid">
-                                        <div>{idx + 1}</div>
-                                        <div>
-                                            {productName}
-                                            {item.description && <div style={{ fontSize: '8pt', textTransform: 'none', marginTop: '1mm' }}>"{item.description}"</div>}
+                            {isFetchingDetail ? (
+                                <div className="text-center py-10">
+                                    <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+                                    <div style={{ fontSize: '8pt', color: '#888' }}>Fetching items...</div>
+                                </div>
+                            ) : (
+                                selectedOrder?.items?.map((item: any, idx: number) => {
+                                    const productName = item.product_name || productsMap[String(item.product)]?.name || `Product #${item.product}`;
+                                    return (
+                                        <div key={idx} className="receipt-item-grid">
+                                            <div>{idx + 1}</div>
+                                            <div>
+                                                {productName}
+                                                {item.description && <div style={{ fontSize: '8pt', textTransform: 'none', marginTop: '1mm' }}>"{item.description}"</div>}
+                                            </div>
+                                            <div>{item.quantity}</div>
+                                            <div style={{ textAlign: 'right' }}>{(parseFloat(item.unit_price) * item.quantity).toFixed(2)}</div>
                                         </div>
-                                        <div>{item.quantity}</div>
-                                        <div style={{ textAlign: 'right' }}>{(parseFloat(item.unit_price) * item.quantity).toFixed(2)}</div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })
+                            )}
 
                             <div className="thermal-divider"></div>
 
