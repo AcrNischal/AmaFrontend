@@ -242,7 +242,8 @@ export default function CounterPOS() {
 
     const loadSpecificOrder = async (orderId: number) => {
         try {
-            const data = await fetchInvoices();
+            const res = await fetchInvoices({ date: new Date().toISOString().split('T')[0] });
+            const data = res.results || res;
             if (Array.isArray(data)) {
                 const order = data.find((inv: any) => inv.id === orderId);
                 if (order) {

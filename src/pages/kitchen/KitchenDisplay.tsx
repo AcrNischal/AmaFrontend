@@ -123,27 +123,23 @@ export default function KitchenDisplay() {
     setLoading(true);
     try {
       const [invoiceRes, productData, categoryData, floorData] = await Promise.all([
-        fetchInvoices(),
+        fetchInvoices({ date: new Date().toLocaleDateString('en-CA') }),
         fetchProducts(),
         fetchCategories(),
         fetchTables()
       ]);
 
       const basicInvoices = invoiceRes.results || invoiceRes;
-      
-      // Filter only active invoices that need to be displayed in the kitchen
-      const activeInvoices = (basicInvoices || []).filter((inv: any) => 
-        inv && inv.is_active && (inv.invoice_status === 'PENDING' || inv.invoice_status === 'READY' || inv.invoice_status === 'COMPLETED')
-      );
 
-      // Fetch full details for each active invoice to get items mapping
+      // Fetch full details for all invoices returned for today
+      // Filtering will happen after we have full status info
       const detailedInvoices = await Promise.all(
-        activeInvoices.map(async (inv: any) => {
+        (basicInvoices || []).map(async (inv: any) => {
           try {
             return await fetchInvoiceDetail(inv.id);
           } catch (err) {
             console.error(`Failed to fetch detail for invoice ${inv.id}:`, err);
-            return inv; // Fallback to basic info if detail fetch fails
+            return inv;
           }
         })
       );
@@ -156,6 +152,9 @@ export default function KitchenDisplay() {
       }, {});
 
       const mappedInvoices = detailedInvoices
+        .filter((inv: any) =>
+          inv && inv.is_active && (inv.invoice_status === 'PENDING' || inv.invoice_status === 'READY' || inv.invoice_status === 'COMPLETED')
+        )
         .map((inv: any) => {
           const tableMatch = (inv.description || inv.invoice_description || "").match(/Table (\d+)/);
           const tableNumber = inv.table_no || (tableMatch ? parseInt(tableMatch[1]) : 0);

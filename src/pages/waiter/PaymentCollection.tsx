@@ -32,7 +32,7 @@ export default function PaymentCollection() {
   const loadInvoices = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetchInvoices();
+      const response = await fetchInvoices({ date: new Date().toISOString().split('T')[0] });
       const data = response.results || response;
       // Filter for orders that are NOT fully paid yet
       const pendingPayments = (data || []).filter(

@@ -108,7 +108,7 @@ export default function AdminOrders() {
       // Add other filters if backend supports them (or for future-proofing)
       if (searchTerm) params.search = searchTerm;
       if (statusFilter !== "all") params.payment_status = statusFilter;
-      if (dateFilter) params.created_at__date = dateFilter;
+      if (dateFilter) params.date = dateFilter;
       if (branchId) params.branch = branchId;
 
       const data = await fetchInvoices(params);

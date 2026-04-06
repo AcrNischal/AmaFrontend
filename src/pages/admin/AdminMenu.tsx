@@ -128,9 +128,9 @@ export default function AdminMenu() {
                 ? (categoriesData || []).filter((c: BackendCategory) => c.branch === branchId)
                 : categoriesData || [];
 
-            const scopedKitchens = branchId != null
+            const scopedKitchens = (branchId != null
                 ? (kitchensData || []).filter((k: KitchenType) => k.branch === branchId)
-                : kitchensData || [];
+                : kitchensData || []).sort((a: any, b: any) => b.id - a.id);
 
             setProducts(scopedProducts);
             setCategories(scopedCategories);
@@ -311,10 +311,8 @@ export default function AdminMenu() {
 
             const response = await createKitchenType(payload);
             const newKitchen = response.data;
-            setKitchenTypes(prev => [...prev, newKitchen].sort((a, b) => a.name.localeCompare(b.name)));
+            setKitchenTypes(prev => [newKitchen, ...prev].sort((a, b) => b.id - a.id));
             setNewKitchenInput("");
-            setKitchenSearchValue(newKitchen.name);
-            setSelectedKitchenId(newKitchen.id);
             toast.success(`Kitchen "${newKitchen.name}" added`);
             return newKitchen;
         } catch (err: any) {
@@ -1011,12 +1009,8 @@ export default function AdminMenu() {
                                                             type="button"
                                                             className="w-full text-left px-4 py-3 text-sm font-black text-primary bg-primary/5 hover:bg-primary/10 transition-all flex items-center gap-2 border-t border-slate-50"
                                                             onClick={async () => {
-                                                                const newK = await handleAddKitchen(kitchenSearchValue.trim());
-                                                                if (newK) {
-                                                                    setSelectedKitchenId(newK.id);
-                                                                    setKitchenSearchValue(newK.name);
-                                                                    setIsKitchenDropdownOpen(false);
-                                                                }
+                                                                await handleAddKitchen(kitchenSearchValue.trim());
+                                                                setIsKitchenDropdownOpen(false);
                                                             }}
                                                         >
                                                             <Plus className="h-3 w-3" />

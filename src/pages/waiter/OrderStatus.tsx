@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { fetchInvoices, fetchNotifications, markNotificationRead, fetchProducts, fetchCategories, updateInvoiceStatus, fetchInvoiceDetail } from "@/api/index.js";
 import { getCurrentUser } from "@/auth/auth";
 import { useOrdersWebSocket } from "@/hooks/useOrdersWebSocket";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 
 type MainTab = "mine" | "all";
 
@@ -30,7 +30,7 @@ export default function OrderStatus() {
     setLoading(true);
     try {
       const [dataRes, notifs, prodData, catData] = await Promise.all([
-        fetchInvoices(),
+        fetchInvoices({ date: format(new Date(), 'yyyy-MM-dd') }),
         fetchNotifications(),
         fetchProducts(),
         fetchCategories()
