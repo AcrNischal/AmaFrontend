@@ -138,7 +138,7 @@ export default function AdminDashboard() {
   const loadRecentOrders = async () => {
     setLoading(true);
     try {
-      const response = await fetchInvoices();
+      const response = await fetchInvoices({ date: format(new Date(), 'yyyy-MM-dd') });
       const data = response.results || response;
       const sorted = Array.isArray(data)
         ? [...data].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())

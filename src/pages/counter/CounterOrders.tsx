@@ -70,6 +70,10 @@ export default function CounterOrders() {
     const [showKeypad, setShowKeypad] = useState(false);
     const [isFetchingDetail, setIsFetchingDetail] = useState(false);
     const [activeKeypadField, setActiveKeypadField] = useState<'payment' | 'search' | null>(null);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [dateFilter, setDateFilter] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const keyboardRef = useRef<HTMLDivElement>(null);
     const backspaceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const backspaceIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -118,29 +122,48 @@ export default function CounterOrders() {
         }
     }, []);
 
-    const loadInvoices = useCallback(async () => {
-        setLoading(true);
+    const loadInvoices = useCallback(async (pageNumber: number = 1, isReset: boolean = false) => {
+        if (isReset) {
+            setLoading(true);
+            setPage(1);
+        } else {
+            setLoadingMore(true);
+        }
         try {
-            const response = await fetchInvoices();
+            const params: any = {
+                page: pageNumber,
+                date: dateFilter
+            };
+            const response = await fetchInvoices(params);
             const data = response.results || response;
+            const nextUrl = response.next;
+
             if (Array.isArray(data)) {
-                // Filter locally to avoid crashing on invalid/deleted invoices
                 const validOrders = data.filter((inv: any) =>
                     inv.invoice_type === 'SALE' && !inv.is_deleted
                 );
                 // Sort by ID descending (newest first)
                 validOrders.sort((a: any, b: any) => b.id - a.id);
-                setOrders(validOrders);
+                
+                if (isReset) {
+                    setOrders(validOrders);
+                } else {
+                    setOrders(prev => [...prev, ...validOrders]);
+                }
+                setHasMore(!!nextUrl);
+                if (!isReset) setPage(pageNumber);
             } else {
                 setOrders([]);
+                setHasMore(false);
             }
         } catch (err: any) {
             toast.error(err.message || "Failed to load orders");
             setOrders([]);
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
-    }, []);
+    }, [dateFilter]);
 
     useEffect(() => {
         const user = getCurrentUser();
@@ -154,9 +177,15 @@ export default function CounterOrders() {
                 console.error("❌ Failed to fetch branch info:", err);
             });
         }
-        loadInvoices();
+        loadInvoices(1, true);
         loadProducts();
     }, [loadInvoices, loadProducts]);
+
+    const handleLoadMore = () => {
+        if (!loadingMore && hasMore) {
+            loadInvoices(page + 1);
+        }
+    };
 
     // Play notification sound
 
@@ -547,6 +576,12 @@ export default function CounterOrders() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
+                <Input
+                    type="date"
+                    className="h-10 w-[160px] rounded-lg border-slate-200 bg-white shadow-sm"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className={cn(
@@ -729,6 +764,28 @@ export default function CounterOrders() {
                             </tbody>
                         </table>
                     </div>
+                    {hasMore && (
+                        <div className="p-4 border-t flex justify-center bg-slate-50/50">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleLoadMore}
+                                disabled={loadingMore}
+                                className="gap-2 font-black text-slate-500 hover:text-primary transition-all"
+                            >
+                                {loadingMore ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Loading more...
+                                    </>
+                                ) : (
+                                    <>
+                                        Load More Orders
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </main>
 
