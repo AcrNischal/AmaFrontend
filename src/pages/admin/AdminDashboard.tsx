@@ -1,7 +1,7 @@
 import { StatCard } from "@/components/admin/StatCard";
 import { useState, useEffect, useCallback } from "react";
 import { NavLink } from "react-router-dom";
-import { fetchDashboardDetails, fetchInvoices, fetchTables } from "@/api/index.js";
+import { fetchDashboardDetails, fetchInvoices, fetchTables, fetchInvoiceDetail } from "@/api/index.js";
 import { getCurrentUser } from "../../auth/auth";
 import { toast } from "sonner";
 import { useDashboardWebSocket } from "@/hooks/useDashboardWebSocket";
@@ -68,6 +68,7 @@ export default function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFetchingDetail, setIsFetchingDetail] = useState(false);
   const [floors, setFloors] = useState<any[]>([]);
   const [sseConnected, setSSEConnected] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
@@ -137,7 +138,8 @@ export default function AdminDashboard() {
   const loadRecentOrders = async () => {
     setLoading(true);
     try {
-      const data = await fetchInvoices();
+      const response = await fetchInvoices();
+      const data = response.results || response;
       const sorted = Array.isArray(data)
         ? [...data].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         : [];
@@ -158,6 +160,19 @@ export default function AdminDashboard() {
       console.error("Dashboard recent orders failed:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOrderClick = async (order: any) => {
+    setSelectedOrder(order); // Show basic info first
+    setIsFetchingDetail(true);
+    try {
+      const fullDetail = await fetchInvoiceDetail(order.id);
+      setSelectedOrder(fullDetail);
+    } catch (err) {
+      console.error("Failed to fetch invoice details for dashboard:", err);
+    } finally {
+      setIsFetchingDetail(false);
     }
   };
 
@@ -505,10 +520,10 @@ export default function AdminDashboard() {
               {recentOrders.map((order) => (
                 <tr
                   key={order.id}
-                  className="border-t border-slate-50 hover:bg-slate-50/50 cursor-pointer"
-                  onClick={() => setSelectedOrder(order)}
+                  className="hover:bg-slate-50 transition-colors pointer group cursor-pointer"
+                  onClick={() => handleOrderClick(order)}
                 >
-                  <td className="px-6 py-4 font-bold text-slate-900">{order.invoice_number}</td>
+                  <td className="px-6 py-4 font-black text-slate-700">#{order.invoice_number?.slice(-4)}</td>
                   <td className="px-6 py-4 text-slate-500 text-xs">
                     {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </td>

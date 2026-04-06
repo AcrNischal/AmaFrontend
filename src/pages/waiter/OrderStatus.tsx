@@ -7,7 +7,7 @@ import { WaiterBottomNav } from "@/components/waiter/WaiterBottomNav";
 import { ChefHat, Bell, Loader2, User, Users, Clock, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { fetchInvoices, fetchNotifications, markNotificationRead, fetchProducts, fetchCategories, updateInvoiceStatus } from "@/api/index.js";
+import { fetchInvoices, fetchNotifications, markNotificationRead, fetchProducts, fetchCategories, updateInvoiceStatus, fetchInvoiceDetail } from "@/api/index.js";
 import { getCurrentUser } from "@/auth/auth";
 import { useOrdersWebSocket } from "@/hooks/useOrdersWebSocket";
 import { formatDistanceToNow } from "date-fns";
@@ -29,16 +29,33 @@ export default function OrderStatus() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, notifs, prodData, catData] = await Promise.all([
+      const [dataRes, notifs, prodData, catData] = await Promise.all([
         fetchInvoices(),
         fetchNotifications(),
         fetchProducts(),
         fetchCategories()
       ]);
-      setAllOrders(data || []);
-      setNotifications((notifs || []).filter((n: any) => !n.is_read));
-      setProducts(prodData || []);
-      setCategories(catData || []);
+      const data = dataRes.results || dataRes;
+      
+      const enrichedOrders = await Promise.all(
+        (data || []).map(async (inv: any) => {
+          try {
+            return await fetchInvoiceDetail(inv.id);
+          } catch (err) {
+            console.error(`Failed to fetch detail for waiter order ${inv.id}:`, err);
+            return inv;
+          }
+        })
+      );
+
+      const notificationsData = notifs.results || notifs;
+      const productsData = prodData.results || prodData;
+      const categoriesData = catData.results || catData;
+
+      setAllOrders(enrichedOrders);
+      setNotifications((notificationsData || []).filter((n: any) => !n.is_read));
+      setProducts(productsData || []);
+      setCategories(categoriesData || []);
     } catch (err: any) {
       toast.error(err.message || "Failed to load orders");
     } finally {

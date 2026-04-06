@@ -524,10 +524,26 @@ export async function createInvoice(invoiceData) {
   return data.data;
 }
 
-export async function fetchInvoices() {
-  const res = await apiFetch("/api/invoice/");
+export async function fetchInvoices(params = {}) {
+  let url = "/api/invoice/";
+  const query = new URLSearchParams(params).toString();
+  if (query) {
+    url += `?${query}`;
+  }
+  const res = await apiFetch(url);
   const data = await safeJson(res);
   if (!res.ok) throw new Error(data?.message || "Failed to fetch invoices");
+  
+  // DRF PageNumberPagination returns results, count, next, previous.
+  // If results is present, we return the whole object to allow pagination.
+  // We keep data.data as a fallback for non-paginated or legacy responses.
+  return data.results !== undefined ? data : data.data;
+}
+
+export async function fetchInvoiceDetail(id) {
+  const res = await apiFetch(`/api/invoice/${id}/`);
+  const data = await safeJson(res);
+  if (!res.ok) throw new Error(data?.message || "Failed to fetch invoice details");
   return data.data;
 }
 
