@@ -798,11 +798,14 @@ export default function CounterPOS() {
                             e.preventDefault();
                         }
                     }}
-                    className="max-w-[95vw] md:max-w-[750px] p-0 overflow-hidden border-none shadow-3xl rounded-2xl md:rounded-[2.5rem] z-[50]"
+                    className={cn(
+                        "max-w-[95vw] md:max-w-[750px] p-0 overflow-hidden border-none shadow-3xl rounded-2xl md:rounded-[2.5rem] z-[50] transition-all duration-300",
+                        showKeypad && "!top-[35%] md:!top-[40%]"
+                    )}
                 >
-                    <div className="flex flex-col md:flex-row h-auto md:h-[650px] max-h-[90vh]">
+                    <div className={cn("flex flex-col md:flex-row h-auto md:h-[650px] transition-all", showKeypad ? "max-h-[60vh] md:max-h-[70vh]" : "max-h-[90vh]")}>
                         {/* Checkout Info */}
-                        <div className="flex-1 p-6 md:p-10 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar">
+                        <div className={cn("flex-1 p-6 md:p-10 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar", showKeypad && "pb-40 md:pb-8")}>
                             <div>
                                 <h2 className="text-3xl font-black text-slate-800 mb-2">Checkout</h2>
                                 <p className="text-sm text-slate-400 font-medium">Finalize the order and take payment</p>
@@ -900,7 +903,10 @@ export default function CounterPOS() {
                         </div>
 
                         {/* Payment Processing */}
-                        <div className="w-full md:w-[320px] bg-slate-50 border-t md:border-l p-4 md:p-6 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+                        <div className={cn(
+                            "w-full md:w-[320px] bg-slate-50 border-t md:border-l p-4 md:p-6 flex flex-col gap-4 overflow-y-auto custom-scrollbar",
+                            showKeypad && "pb-64 md:pb-40"
+                        )}>
                             {paymentMethod === 'cash' ? (
                                 <div className="space-y-3 animate-in fade-in slide-in-from-right-4">
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cash Details</Label>
