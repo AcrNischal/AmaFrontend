@@ -11,7 +11,7 @@ import { CreditCard, Banknote, CheckCircle2, IndianRupee, Printer, Clock, X, Loa
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { fetchInvoices, addPayment } from "@/api/index.js";
+import { fetchInvoices, addPayment, fetchInvoiceDetail } from "@/api/index.js";
 import { useOrdersWebSocket } from "@/hooks/useOrdersWebSocket";
 
 export default function PaymentCollection() {
@@ -34,8 +34,20 @@ export default function PaymentCollection() {
     try {
       const response = await fetchInvoices({ date: new Date().toISOString().split('T')[0] });
       const data = response.results || response;
+      
+      const enrichedInvoices = await Promise.all(
+        (data || []).map(async (inv: any) => {
+          try {
+            return await fetchInvoiceDetail(inv.id);
+          } catch (err) {
+            console.error(`Failed to fetch detail for invoice ${inv.id}:`, err);
+            return inv;
+          }
+        })
+      );
+
       // Filter for orders that are NOT fully paid yet
-      const pendingPayments = (data || []).filter(
+      const pendingPayments = enrichedInvoices.filter(
         (o: any) => o.payment_status !== "PAID" && o.invoice_status !== "CANCELLED"
       );
       setOrders(pendingPayments);
@@ -208,15 +220,21 @@ export default function PaymentCollection() {
           {/* Expandable Items List */}
           {showItems && (
             <div className="space-y-1 mb-4 animate-in fade-in slide-in-from-top-1 duration-200">
-              {order.items?.map((item: any, idx: number) => (
-                <div key={idx} className="flex justify-between items-center text-sm bg-slate-50/50 p-1.5 rounded-lg border border-slate-100/50">
-                  <span className="text-slate-700 font-medium leading-tight inline-flex gap-1.5 items-center">
-                    <span className="text-primary font-bold bg-primary/10 px-1.5 py-0.5 rounded text-[11px]">{item.quantity}×</span>
-                    {item.product_name || 'Item'}
-                  </span>
-                  <span className="text-slate-500 text-[11px] tabular-nums font-bold">Rs.{Number(item.unit_price * item.quantity).toFixed(0)}</span>
-                </div>
-              ))}
+              {order.items?.map((item: any, idx: number) => {
+                const name = item?.product_name || item?.product?.name || item?.name || `Product #${item?.product || "?"}`;
+                const qty = item?.quantity ?? 1;
+                const price = item?.unit_price ?? item?.price ?? (item?.product?.selling_price) ?? 0;
+                
+                return (
+                  <div key={idx} className="flex justify-between items-center text-sm bg-slate-50/50 p-1.5 rounded-lg border border-slate-100/50">
+                    <span className="text-slate-700 font-medium leading-tight inline-flex gap-1.5 items-center">
+                      <span className="text-primary font-bold bg-primary/10 px-1.5 py-0.5 rounded text-[11px]">{qty}×</span>
+                      {name}
+                    </span>
+                    <span className="text-slate-500 text-[11px] tabular-nums font-bold">Rs.{(Number(price) * Number(qty)).toFixed(0)}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
 

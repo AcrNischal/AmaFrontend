@@ -474,8 +474,8 @@ export default function AdminMenu() {
         <div className="p-4 md:p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-foreground">Menu Management</h1>
-                    <p className="text-sm text-muted-foreground">Manage your bakery items and categories</p>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">Menu Management</h1>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Manage your bakery items and categories</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     {/* Proper Export Dialog */}
@@ -491,9 +491,9 @@ export default function AdminMenu() {
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
-                            <div className="p-8 bg-gradient-to-br from-primary/10 to-transparent">
+                            <div className="p-4 sm:p-6 md:p-8 bg-gradient-to-br from-primary/10 to-transparent">
                                 <DialogHeader>
-                                    <DialogTitle className="text-3xl font-black uppercase tracking-tight flex items-center gap-3">
+                                    <DialogTitle className="text-2xl sm:text-3xl font-black uppercase tracking-tight flex items-center gap-3">
                                         <div className="h-10 w-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
                                             <FileSpreadsheet className="h-6 w-6" />
                                         </div>
@@ -514,9 +514,9 @@ export default function AdminMenu() {
                                         </li>
                                     </ul>
                                 </div>
-                                <div className="mt-8 flex gap-3">
-                                    <Button variant="ghost" className="flex-1 rounded-xl h-12 font-bold uppercase tracking-widest text-xs" onClick={() => setIsExportDialogOpen(false)}>Cancel</Button>
-                                    <Button className="flex-1 rounded-xl h-12 font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20" onClick={handleExportXLSX}>Download XLSX</Button>
+                                <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                                    <Button variant="ghost" className="flex-1 rounded-xl h-10 sm:h-12 font-bold uppercase tracking-widest text-[10px] sm:text-xs" onClick={() => setIsExportDialogOpen(false)}>Cancel</Button>
+                                    <Button className="flex-1 rounded-xl h-10 sm:h-12 font-black uppercase tracking-widest text-[10px] sm:text-xs shadow-lg shadow-primary/20" onClick={handleExportXLSX}>Download XLSX</Button>
                                 </div>
                             </div>
                         </DialogContent>
@@ -537,7 +537,7 @@ export default function AdminMenu() {
                         <DialogContent className="max-w-md rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
                             <div className="p-8 bg-gradient-to-br from-primary/10 to-transparent">
                                 <DialogHeader>
-                                    <DialogTitle className="text-3xl font-black uppercase tracking-tight flex items-center gap-3">
+                                    <DialogTitle className="text-2xl sm:text-3xl font-black uppercase tracking-tight flex items-center gap-3">
                                         <div className="h-10 w-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
                                             <Upload className="h-6 w-6" />
                                         </div>
@@ -582,10 +582,10 @@ export default function AdminMenu() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="mt-8 flex gap-3">
-                                    <Button variant="ghost" className="flex-1 rounded-xl h-12 font-bold uppercase tracking-widest text-xs" onClick={() => { setIsImportDialogOpen(false); setImportFile(null); }}>Cancel</Button>
+                                <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                                    <Button variant="ghost" className="flex-1 rounded-xl h-10 sm:h-12 font-bold uppercase tracking-widest text-[10px] sm:text-xs" onClick={() => { setIsImportDialogOpen(false); setImportFile(null); }}>Cancel</Button>
                                     <Button 
-                                        className="flex-1 rounded-xl h-12 font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20" 
+                                        className="flex-1 rounded-xl h-10 sm:h-12 font-black uppercase tracking-widest text-[10px] sm:text-xs shadow-lg shadow-primary/20" 
                                         onClick={handleImportXLSX}
                                         disabled={!importFile || importLoading}
                                     >
@@ -611,9 +611,9 @@ export default function AdminMenu() {
                         <DialogContent className="max-w-xl rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden">
                             <div className="bg-gradient-to-br from-primary/10 via-transparent to-primary/5 p-8">
                                 <DialogHeader>
-                                    <DialogTitle className="text-3xl font-black uppercase tracking-tight flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                                            <Package className="h-6 w-6" />
+                                    <DialogTitle className="text-2xl sm:text-3xl font-black uppercase tracking-tight flex items-center gap-3">
+                                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                                            <Package className="h-5 w-5 sm:h-6 sm:w-6" />
                                         </div>
                                         {editItem ? 'Edit Item' : 'New Product'}
                                     </DialogTitle>
@@ -625,7 +625,7 @@ export default function AdminMenu() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="selling_price" className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Selling Value (Rs.)</Label>
-                                        <Input id="selling_price" name="selling_price" className="h-14 text-2xl font-black rounded-2xl bg-white/50 backdrop-blur-sm border-2 border-slate-100 focus:border-primary transition-all text-primary shadow-inner" type="number" step="0.01" placeholder="0.00" defaultValue={editItem?.selling_price} required />
+                                        <Input id="selling_price" name="selling_price" className="h-11 sm:h-14 text-xl sm:text-2xl font-black rounded-2xl bg-white/50 backdrop-blur-sm border-2 border-slate-100 focus:border-primary transition-all text-primary shadow-inner" type="number" step="0.01" placeholder="0.00" defaultValue={editItem?.selling_price} required />
                                     </div>
                                     <div className="grid grid-cols-2 gap-6 items-end">
                                         <div className="space-y-2 relative">
@@ -644,7 +644,7 @@ export default function AdminMenu() {
                                                         else setSelectedCategoryId(null);
                                                     }}
                                                     onFocus={() => setIsCatDropdownOpen(true)}
-                                                    className="h-14 rounded-2xl bg-white/50 backdrop-blur-sm border-2 border-slate-100 focus:border-primary transition-all pr-12 font-bold shadow-inner"
+                                                    className="h-11 sm:h-14 rounded-2xl bg-white/50 backdrop-blur-sm border-2 border-slate-100 focus:border-primary transition-all pr-12 font-bold shadow-inner"
                                                 />
                                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-primary transition-colors">
                                                     <Search className="h-5 w-5" />
@@ -797,12 +797,12 @@ export default function AdminMenu() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex gap-4 pt-4">
-                                        <Button type="button" variant="ghost" className="flex-1 h-16 rounded-[1.5rem] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-100/50" onClick={() => setIsDialogOpen(false)}>
+                                    <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                                        <Button type="button" variant="ghost" className="flex-1 h-12 sm:h-16 rounded-[1.5rem] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-100/50 text-xs sm:text-base" onClick={() => setIsDialogOpen(false)}>
                                             Cancel
                                         </Button>
-                                        <Button type="submit" className="flex-1 h-16 rounded-[1.5rem] font-black uppercase tracking-widest bg-primary text-white shadow-xl shadow-primary/20 active:scale-95 transition-all text-lg" disabled={submitting}>
-                                            {submitting ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : (editItem ? 'Confirm Changes' : 'Quick Create')}
+                                        <Button type="submit" className="flex-1 h-12 sm:h-16 rounded-[1.5rem] font-black uppercase tracking-widest bg-primary text-white shadow-xl shadow-primary/20 active:scale-95 transition-all text-sm sm:text-lg" disabled={submitting}>
+                                            {submitting ? <Loader2 className="h-4 w-4 sm:h-6 sm:w-6 animate-spin mx-auto" /> : (editItem ? 'Confirm Changes' : 'Quick Create')}
                                         </Button>
                                     </div>
                                 </form>
@@ -879,7 +879,7 @@ export default function AdminMenu() {
                                             <p className="text-[11px] uppercase font-black tracking-widest text-slate-400 underline decoration-slate-200 decoration-2 underline-offset-2 mt-1">{item.category_name}</p>
                                         </div>
                                         <div className="text-right flex flex-col items-end gap-1.5">
-                                            <span className="text-xl font-black text-primary">Rs.{item.selling_price}</span>
+                                            <span className="text-lg sm:text-xl font-black text-primary">Rs.{item.selling_price}</span>
                                             <p className="text-[10px] uppercase font-black tracking-widest text-primary/60 flex items-center gap-1 bg-primary/5 px-2 py-0.5 rounded-lg border border-primary/10">
                                                 <CookingPot className="h-3 w-3" />
                                                 {categories.find(c => c.id === item.category)?.kitchentype_name || 'No Kitchen'}
@@ -937,17 +937,17 @@ export default function AdminMenu() {
                     )}
                 </TabsContent>
 
-                <TabsContent value="categories" className="space-y-6 mt-6">
-                    <div className="card-elevated p-8 max-w-4xl mx-auto shadow-2xl rounded-[2.5rem] border-4 border-white">
-                        <div className="flex items-center justify-between mb-8">
+                <TabsContent value="categories" className="space-y-6 mt-6 px-0 sm:px-2">
+                    <div className="card-elevated p-4 sm:p-6 md:p-8 max-w-4xl mx-auto shadow-2xl rounded-[2.5rem] border-4 border-white">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
                             <div>
-                                <h2 className="text-3xl font-black flex items-center gap-3 uppercase tracking-tighter text-slate-800">
-                                    <Layers className="h-8 w-8 text-primary" />
+                                <h2 className="text-xl sm:text-2xl md:text-3xl font-black flex items-center gap-3 uppercase tracking-tighter text-slate-800">
+                                    <Layers className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
                                     Manage Categories
                                 </h2>
-                                <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1 ml-1">Organize your menu stations</p>
+                                <p className="text-slate-400 font-bold text-[10px] sm:text-xs uppercase tracking-widest mt-1 ml-1">Organize your menu stations</p>
                             </div>
-                            <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-4 py-1.5 rounded-full font-black text-xs uppercase tracking-widest">
+                            <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-none px-4 py-1.5 rounded-full font-black text-[10px] sm:text-xs uppercase tracking-widest w-fit">
                                 {categories.length} Categories
                             </Badge>
                         </div>
@@ -960,13 +960,13 @@ export default function AdminMenu() {
                                         placeholder="Category Name (e.g. Burgers, Drinks)"
                                         value={newCategoryInput}
                                         onChange={(e) => setNewCategoryInput(e.target.value)}
-                                        className="h-14 text-lg shadow-sm border-slate-200 focus:border-primary focus:ring-primary rounded-2xl bg-white px-5 font-bold"
+                                        className="h-11 sm:h-14 text-base sm:text-lg shadow-sm border-slate-200 focus:border-primary focus:ring-primary rounded-2xl bg-white px-5 font-bold"
                                     />
                                 </div>
                                 <div className="md:col-span-4 space-y-1.5 relative">
                                     <div className="relative">
                                         <Input
-                                            placeholder="Select Kitchen Station..."
+                                            placeholder="Select Kitchen..."
                                             value={kitchenSearchValue}
                                             onChange={(e) => {
                                                 setKitchenSearchValue(e.target.value);
@@ -976,7 +976,7 @@ export default function AdminMenu() {
                                                 else setSelectedKitchenId(null);
                                             }}
                                             onFocus={() => setIsKitchenDropdownOpen(true)}
-                                            className="h-14 rounded-2xl bg-white border border-slate-200 focus:ring-2 focus:ring-primary/20 pr-12 font-bold text-slate-700"
+                                            className="h-11 sm:h-14 rounded-2xl bg-white border border-slate-200 focus:ring-2 focus:ring-primary/20 pr-12 font-bold text-slate-700"
                                         />
                                         <div className="absolute right-4 top-1/2 -translate-y-1/2 text-primary/40 pointer-events-none">
                                             <CookingPot className="h-6 w-6" />

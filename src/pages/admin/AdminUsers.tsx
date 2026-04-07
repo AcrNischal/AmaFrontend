@@ -201,8 +201,8 @@ export default function AdminUsers() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">User Management</h1>
-          <p className="text-muted-foreground">Manage staff accounts and access</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">User Management</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Manage staff accounts and access</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -365,13 +365,13 @@ export default function AdminUsers() {
       </div>
 
       {/* Role Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
         {(['WAITER', 'KITCHEN', 'BRANCH_MANAGER', 'ADMIN', 'COUNTER'] as const).map(role => {
           const Icon = roleIcons[role];
           return (
-            <div key={role} className="card-elevated p-4 flex items-center gap-3">
-              <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${roleColors[role]}`}>
-                {Icon && <Icon className="h-6 w-6" />}
+            <div key={role} className="card-elevated p-3 sm:p-4 flex items-center gap-3">
+              <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center ${roleColors[role]}`}>
+                {Icon && <Icon className="h-5 w-5 sm:h-6 sm:w-6" />}
               </div>
               <div>
                 <p className="text-2xl font-bold">{countByRole(role)}</p>
@@ -401,10 +401,10 @@ export default function AdminUsers() {
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-400">Staff Member</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-400">Role</th>
-                <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-400">Access Method</th>
-                <th className="px-6 py-4 text-center text-xs font-black uppercase tracking-wider text-slate-400">Actions</th>
+                <th className="px-6 py-4 text-left text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">Staff Member</th>
+                <th className="px-6 py-4 text-left text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">Role</th>
+                <th className="px-6 py-4 text-left text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">Access Method</th>
+                <th className="px-6 py-4 text-center text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -431,8 +431,8 @@ export default function AdminUsers() {
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${roleColors[user.user_type]} shadow-sm`}>
-                          {Icon && <Icon className="h-5 w-5" />}
+                        <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-xl flex items-center justify-center ${roleColors[user.user_type]} shadow-sm`}>
+                          {Icon && <Icon className="h-4 w-4 sm:h-5 sm:w-5" />}
                         </div>
                         <div className="flex flex-col">
                           <span className="font-bold text-slate-700">{user.full_name || user.username}</span>

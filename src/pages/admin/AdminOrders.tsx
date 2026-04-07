@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,21 +44,12 @@ export default function AdminOrders() {
   const currentUser = getCurrentUser();
   const branchId = currentUser?.branch_id ?? null;
 
+  // Handle initial load only
   useEffect(() => {
-    // Reset and load when branchId changes
     loadInvoices(1, true);
     loadProducts();
     loadBranches();
   }, [branchId]);
-
-  // Handle filter/search changes
-  useEffect(() => {
-    // We want a small delay for search to avoid too many requests
-    const timer = setTimeout(() => {
-      loadInvoices(1, true);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchTerm, statusFilter, dateFilter]);
 
   const loadProducts = async () => {
     try {
@@ -206,9 +197,23 @@ export default function AdminOrders() {
     }
   };
 
-  // We keep the client-side filters as a secondary safety layer 
-  // until we are certain the backend handles all query params perfectly.
-  const filteredOrders = orders; // Now filtered by the server (mostly)
+  // Purely client-side filtering for immediate feedback
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      const matchesSearch = !searchTerm || 
+        order.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.customer_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(order.total_amount).includes(searchTerm);
+      
+      const matchesStatus = statusFilter === "all" || 
+        (order.payment_status || "PENDING").toUpperCase() === statusFilter.toUpperCase();
+      
+      const matchesDate = !dateFilter || 
+        (order.created_at && order.created_at.startsWith(dateFilter));
+      
+      return matchesSearch && matchesStatus && matchesDate;
+    });
+  }, [orders, searchTerm, statusFilter, dateFilter]);
 
   const handleExport = () => {
     try {
@@ -242,8 +247,8 @@ export default function AdminOrders() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Orders</h1>
-          <p className="text-muted-foreground">View and manage {totalCount > 0 ? `${totalCount} ` : 'all '}orders</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">Orders</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">View and manage {totalCount > 0 ? `${totalCount} ` : 'all '}orders</p>
         </div>
         <Button variant="outline" onClick={handleExport} disabled={filteredOrders.length === 0}>
           <Download className="h-4 w-4 mr-2" />
@@ -252,8 +257,8 @@ export default function AdminOrders() {
       </div>
 
       {/* Filters */}
-      <div className="card-elevated p-4 flex flex-wrap gap-4 items-center">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="card-elevated p-3 sm:p-4 flex flex-wrap gap-3 sm:gap-4 items-center">
+        <div className="relative flex-1 min-w-full sm:min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search orders..."
@@ -264,7 +269,7 @@ export default function AdminOrders() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -279,7 +284,7 @@ export default function AdminOrders() {
         </Select>
         <Input 
           type="date" 
-          className="w-[180px]" 
+          className="w-full sm:w-[180px]" 
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value)}
         />

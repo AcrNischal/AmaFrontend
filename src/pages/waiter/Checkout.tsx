@@ -65,8 +65,8 @@ export default function Checkout() {
     const [showSuccess, setShowSuccess] = useState(false);
     const [changeAmount, setChangeAmount] = useState<number | null>(null);
     const [orderId, setOrderId] = useState<string | null>(null);
+    const [customerSearchTerm, setCustomerSearchTerm] = useState("");
 
-    // Calculate totals
     const subtotal = useMemo(() =>
         state?.cart.reduce((sum, c) => sum + (c.item.price * c.quantity), 0) || 0,
         [state?.cart]
@@ -247,6 +247,8 @@ export default function Checkout() {
                         <CustomerSelector
                             selectedCustomerId={customer?.id}
                             onSelect={(c) => setCustomer(c)}
+                            searchTerm={customerSearchTerm}
+                            onSearchChange={setCustomerSearchTerm}
                         />
 
                         <Separator className="my-2" />

@@ -144,7 +144,7 @@ export default function CounterOrders() {
                 );
                 // Sort by ID descending (newest first)
                 validOrders.sort((a: any, b: any) => b.id - a.id);
-                
+
                 if (isReset) {
                     setOrders(validOrders);
                 } else {

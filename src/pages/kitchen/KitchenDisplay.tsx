@@ -129,6 +129,8 @@ export default function KitchenDisplay() {
         fetchTables()
       ]);
 
+      setFloors(floorData || []);
+
       const basicInvoices = invoiceRes.results || invoiceRes;
 
       // Fetch full details for all invoices returned for today

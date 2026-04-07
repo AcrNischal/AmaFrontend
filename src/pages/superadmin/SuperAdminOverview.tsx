@@ -250,7 +250,7 @@ export default function SuperAdminOverview() {
         <div className="space-y-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black tracking-tighter text-slate-900">ENTERPRISE OVERVIEW</h1>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter text-slate-900">ENTERPRISE OVERVIEW</h1>
                     <div className="flex items-center gap-2 mt-1">
                         <div className={cn("h-1.5 w-1.5 rounded-full", wsConnected ? "bg-emerald-500 animate-pulse" : "bg-slate-300")} />
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
@@ -264,7 +264,7 @@ export default function SuperAdminOverview() {
                 <div className="flex flex-wrap items-center gap-3">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="h-11 rounded-xl border-2 font-bold px-4 border-slate-100 shadow-sm gap-2 bg-white">
+                            <Button variant="outline" className="h-10 sm:h-11 rounded-xl border-2 font-bold px-4 border-slate-100 shadow-sm gap-2 bg-white">
                                 <Filter className="h-4 w-4 text-primary" />
                                 <span className="capitalize">{timeframe}</span>
                                 <ChevronDown className="h-3 w-3 opacity-50" />
@@ -283,7 +283,7 @@ export default function SuperAdminOverview() {
                     {timeframe === "custom" && (
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" className={cn("h-11 rounded-xl border-2 font-bold px-4 border-slate-100 shadow-sm gap-2 bg-white", !dateRange.from && "text-muted-foreground")}>
+                                <Button variant="outline" className={cn("h-10 sm:h-11 rounded-xl border-2 font-bold px-4 border-slate-100 shadow-sm gap-2 bg-white", !dateRange.from && "text-muted-foreground")}>
                                     <CalendarIcon className="h-4 w-4" />
                                     {dateRange.from ? (dateRange.to ? `${format(dateRange.from, "MMM dd")} - ${format(dateRange.to, "MMM dd")}` : format(dateRange.from, "MMM dd")) : "Pick Dates"}
                                 </Button>
@@ -294,7 +294,7 @@ export default function SuperAdminOverview() {
                         </Popover>
                     )}
 
-                    <Button onClick={() => setIsAddOpen(true)} className="h-11 rounded-xl shadow-lg shadow-primary/20 px-6 font-bold gap-2">
+                    <Button onClick={() => setIsAddOpen(true)} className="h-10 sm:h-11 rounded-xl shadow-lg shadow-primary/20 px-6 font-bold gap-2">
                         <Plus className="h-4 w-4" /> NEW BRANCH
                     </Button>
                 </div>
@@ -310,7 +310,7 @@ export default function SuperAdminOverview() {
 
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="card-elevated p-8">
+                <div className="card-elevated p-4 sm:p-6 md:p-8">
                     <h3 className="text-lg font-black uppercase tracking-tight mb-6 text-center capitalize">{timeframe} Category Split</h3>
                     <div className="h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -348,7 +348,7 @@ export default function SuperAdminOverview() {
                     </div>
                 </div>
 
-                <div className="card-elevated p-8">
+                <div className="card-elevated p-4 sm:p-6 md:p-8">
                     <h3 className="text-lg font-black uppercase tracking-tight mb-6 text-center capitalize">{timeframe} Payment Status</h3>
                     <div className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -381,7 +381,7 @@ export default function SuperAdminOverview() {
                     </div>
                 </div>
 
-                <div className="card-elevated p-8">
+                <div className="card-elevated p-4 sm:p-6 md:p-8">
                     <h3 className="text-lg font-black uppercase tracking-tight mb-6 text-center capitalize">{timeframe} Payments</h3>
                     <div className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -416,7 +416,7 @@ export default function SuperAdminOverview() {
             </div>
 
             {/* Sales Trend */}
-            <div className="card-elevated p-8">
+            <div className="card-elevated p-4 sm:p-6 md:p-8">
                 <h3 className="text-xl font-bold mb-8 capitalize">{timeframe} Sales Momentum</h3>
                 <div className="h-[350px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -440,10 +440,10 @@ export default function SuperAdminOverview() {
             {/* Branch Management Section */}
             <div className="card-elevated border-2 border-slate-50 overflow-hidden rounded-[2rem]">
                 <div className="px-6 py-5 border-b flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
-                    <h3 className="text-lg font-black uppercase tracking-tight">Active Branches</h3>
+                    <h3 className="text-base sm:text-lg font-black uppercase tracking-tight">Active Branches</h3>
                     <div className="relative w-full md:w-80">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <Input placeholder="Search locations..." className="pl-9 h-11 bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        <Input placeholder="Search locations..." className="pl-9 h-10 sm:h-11 bg-white" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                     </div>
                 </div>
 

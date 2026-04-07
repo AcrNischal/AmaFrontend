@@ -192,7 +192,7 @@ export default function CounterPOS() {
                 setCategories(["All"]);
                 console.warn("⚠️ Categories data is missing, defaulting to 'All'.");
             }
-            
+
             // Always ensure "All" is selected if it was the previous intent
             setSelectedCategory("All");
 
