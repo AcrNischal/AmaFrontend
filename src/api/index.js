@@ -363,11 +363,18 @@ export async function deleteUser(id) {
   return data;
 }
 
-export async function fetchProducts() {
-  const res = await apiFetch("/api/products/");
+export async function fetchProducts(params = {}) {
+  let url = "/api/products/";
+  const query = new URLSearchParams(params).toString();
+  if (query) {
+    url += `?${query}`;
+  }
+  const res = await apiFetch(url);
   const data = await safeJson(res);
   if (!res.ok) throw new Error(data?.message || "Failed to fetch products");
-  return data.data;
+  
+  // DRF PageNumberPagination returns results, count, next, previous.
+  return data.results !== undefined ? data : data.data;
 }
 
 export async function createProduct(productData) {

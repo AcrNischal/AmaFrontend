@@ -44,12 +44,22 @@ export default function AdminOrders() {
   const currentUser = getCurrentUser();
   const branchId = currentUser?.branch_id ?? null;
 
-  // Handle initial load only
+  // Handle initial metadata load
   useEffect(() => {
-    loadInvoices(1, true);
     loadProducts();
     loadBranches();
-  }, [branchId]);
+  }, []);
+
+  // Handle invoice loading and filter changes
+  useEffect(() => {
+    // Debounce search term changes, but trigger date changes immediately
+    const delay = searchTerm ? 500 : 0;
+    const timer = setTimeout(() => {
+      loadInvoices(1, true);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [branchId, dateFilter, searchTerm]);
 
   const loadProducts = async () => {
     try {
@@ -97,8 +107,8 @@ export default function AdminOrders() {
       };
 
       // Add other filters if backend supports them (or for future-proofing)
+      // Search and date filters are handled by the server
       if (searchTerm) params.search = searchTerm;
-      if (statusFilter !== "all") params.payment_status = statusFilter;
       if (dateFilter) params.date = dateFilter;
       if (branchId) params.branch = branchId;
 
@@ -197,27 +207,17 @@ export default function AdminOrders() {
     }
   };
 
-  // Purely client-side filtering for immediate feedback
-  const filteredOrders = useMemo(() => {
-    return orders.filter(order => {
-      const matchesSearch = !searchTerm || 
-        order.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (order.customer_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        String(order.total_amount).includes(searchTerm);
-      
-      const matchesStatus = statusFilter === "all" || 
-        (order.payment_status || "PENDING").toUpperCase() === statusFilter.toUpperCase();
-      
-      const matchesDate = !dateFilter || 
-        (order.created_at && order.created_at.startsWith(dateFilter));
-      
-      return matchesSearch && matchesStatus && matchesDate;
-    });
-  }, [orders, searchTerm, statusFilter, dateFilter]);
+  // Status filter operates on the loaded data (client-side)
+  const displayOrders = useMemo(() => {
+    if (statusFilter === "all") return orders;
+    return orders.filter(o => 
+      (o.payment_status || "PENDING").toUpperCase() === statusFilter.toUpperCase()
+    );
+  }, [orders, statusFilter]);
 
   const handleExport = () => {
     try {
-      const exportData = filteredOrders.map(order => ({
+      const exportData = displayOrders.map(order => ({
         'Invoice #': order.invoice_number,
         'Created By': order.created_by_name || 'N/A',
         'Customer': order.customer_name?.trim() || 'Walk-in',
@@ -250,7 +250,7 @@ export default function AdminOrders() {
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">Orders</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">View and manage {totalCount > 0 ? `${totalCount} ` : 'all '}orders</p>
         </div>
-        <Button variant="outline" onClick={handleExport} disabled={filteredOrders.length === 0}>
+        <Button variant="outline" onClick={handleExport} disabled={displayOrders.length === 0}>
           <Download className="h-4 w-4 mr-2" />
           Export
         </Button>
@@ -314,7 +314,7 @@ export default function AdminOrders() {
                     </div>
                   </td>
                 </tr>
-              ) : filteredOrders.map((order) => (
+              ) : displayOrders.map((order) => (
                 <tr
                   key={order.id}
                   className="border-t hover:bg-slate-50 transition-colors cursor-pointer"
@@ -336,7 +336,7 @@ export default function AdminOrders() {
           </table>
         </div>
 
-        {filteredOrders.length === 0 && !loading && (
+        {displayOrders.length === 0 && !loading && (
           <div className="py-12 text-center text-muted-foreground">
             No orders found matching your criteria
           </div>
