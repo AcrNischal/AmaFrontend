@@ -107,22 +107,33 @@ export default function AdminMenu() {
 
     const importInputRef = useRef<HTMLInputElement>(null);
 
+    // Pagination state
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
+    const [totalCount, setTotalCount] = useState(0);
+    const [loadingMore, setLoadingMore] = useState(false);
+
+    // Initial metadata load (categories, kitchens)
     useEffect(() => {
-        loadData();
+        loadMetadata();
     }, [branchId]);
 
-    const loadData = async () => {
-        setLoading(true);
+    // Product loading and filter updates
+    useEffect(() => {
+        // Debounce search term changes, trigger others immediately
+        const delay = searchTerm ? 500 : 0;
+        const timer = setTimeout(() => {
+            loadProducts(1, true);
+        }, delay);
+        return () => clearTimeout(timer);
+    }, [branchId, categoryFilter, searchTerm]);
+
+    const loadMetadata = async () => {
         try {
-            const [productsData, categoriesData, kitchensData] = await Promise.all([
-                fetchProducts(),
+            const [categoriesData, kitchensData] = await Promise.all([
                 fetchCategories(),
                 fetchKitchenTypes()
             ]);
-
-            const scopedProducts = branchId != null
-                ? (productsData || []).filter((p: Product) => p.branch_id === branchId)
-                : productsData || [];
 
             const scopedCategories = branchId != null
                 ? (categoriesData || []).filter((c: BackendCategory) => c.branch === branchId)
@@ -132,13 +143,61 @@ export default function AdminMenu() {
                 ? (kitchensData || []).filter((k: KitchenType) => k.branch === branchId)
                 : kitchensData || []).sort((a: any, b: any) => b.id - a.id);
 
-            setProducts(scopedProducts);
             setCategories(scopedCategories);
             setKitchenTypes(scopedKitchens);
         } catch (err: any) {
-            toast.error(err.message || "Failed to load data");
+            console.error("Failed to load metadata", err);
+        }
+    };
+
+    const loadProducts = async (pageNumber: number = 1, isReset: boolean = false) => {
+        if (isReset) {
+            setLoading(true);
+            setPage(1);
+        } else {
+            setLoadingMore(true);
+        }
+
+        try {
+            const params: any = { page: pageNumber };
+            if (searchTerm) params.search = searchTerm;
+            if (categoryFilter !== "all") params.category_name = categoryFilter;
+            if (branchId) params.branch = branchId;
+
+            const data = await fetchProducts(params);
+            
+            let results = [];
+            let nextUrl = null;
+            let count = 0;
+
+            if (data && typeof data === 'object' && 'results' in data) {
+                results = data.results;
+                nextUrl = data.next;
+                count = data.count || 0;
+            } else if (Array.isArray(data)) {
+                results = data;
+                count = data.length;
+            }
+
+            const scoped = branchId != null
+                ? results.filter((p: Product) => p.branch_id === branchId)
+                : results;
+
+            if (isReset) {
+                setProducts(scoped);
+            } else {
+                setProducts(prev => [...prev, ...scoped]);
+            }
+            
+            setHasMore(!!nextUrl);
+            setTotalCount(count);
+            if (!isReset) setPage(pageNumber);
+
+        } catch (err: any) {
+            toast.error(err.message || "Failed to load products");
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
     };
 
@@ -226,9 +285,9 @@ export default function AdminMenu() {
         if (!confirm("Are you sure you want to delete this item?")) return;
 
         try {
-            const data = await deleteProduct(productId);
+            await deleteProduct(productId);
             setProducts(prev => prev.filter(p => p.id !== productId));
-            toast.success(data.message || "Item deleted");
+            toast.success("Item deleted");
         } catch (err: any) {
             if (err.message?.includes("404") || err.message?.toLowerCase().includes("not found")) {
                 setProducts(prev => prev.filter(p => p.id !== productId));
@@ -236,6 +295,12 @@ export default function AdminMenu() {
             } else {
                 toast.error(err.message || "Delete failed");
             }
+        }
+    };
+
+    const handleLoadMore = () => {
+        if (!loadingMore && hasMore) {
+            loadProducts(page + 1);
         }
     };
 
@@ -858,82 +923,106 @@ export default function AdminMenu() {
                         </div>
                     </div>
 
-                    {loading ? (
+                    {loading && products.length === 0 ? (
                         <div className="flex items-center justify-center py-12">
                             <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {filteredItems.map((item) => (
-                                <div
-                                    key={item.id}
-                                    onClick={() => {
-                                        setViewItem(item);
-                                        setIsViewDialogOpen(true);
-                                    }}
-                                    className={`card-elevated p-4 transition-all hover:shadow-lg cursor-pointer active:scale-[0.98] group ${!item.is_available && 'opacity-60 grayscale-[0.5]'}`}
-                                >
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex-1 mr-4">
-                                            <h3 className="font-bold text-slate-900 text-lg leading-snug group-hover:text-primary transition-colors">{item.name}</h3>
-                                            <p className="text-[11px] uppercase font-black tracking-widest text-slate-400 underline decoration-slate-200 decoration-2 underline-offset-2 mt-1">{item.category_name}</p>
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {filteredItems.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        onClick={() => {
+                                            setViewItem(item);
+                                            setIsViewDialogOpen(true);
+                                        }}
+                                        className={`card-elevated p-4 transition-all hover:shadow-lg cursor-pointer active:scale-[0.98] group ${!item.is_available && 'opacity-60 grayscale-[0.5]'}`}
+                                    >
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="flex-1 mr-4">
+                                                <h3 className="font-bold text-slate-900 text-lg leading-snug group-hover:text-primary transition-colors">{item.name}</h3>
+                                                <p className="text-[11px] uppercase font-black tracking-widest text-slate-400 underline decoration-slate-200 decoration-2 underline-offset-2 mt-1">{item.category_name}</p>
+                                            </div>
+                                            <div className="text-right flex flex-col items-end gap-1.5">
+                                                <span className="text-lg sm:text-xl font-black text-primary">Rs.{item.selling_price}</span>
+                                                <p className="text-[10px] uppercase font-black tracking-widest text-primary/60 flex items-center gap-1 bg-primary/5 px-2 py-0.5 rounded-lg border border-primary/10">
+                                                    <CookingPot className="h-3 w-3" />
+                                                    {categories.find(c => c.id === item.category)?.kitchentype_name || 'No Kitchen'}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="text-right flex flex-col items-end gap-1.5">
-                                            <span className="text-lg sm:text-xl font-black text-primary">Rs.{item.selling_price}</span>
-                                            <p className="text-[10px] uppercase font-black tracking-widest text-primary/60 flex items-center gap-1 bg-primary/5 px-2 py-0.5 rounded-lg border border-primary/10">
-                                                <CookingPot className="h-3 w-3" />
-                                                {categories.find(c => c.id === item.category)?.kitchentype_name || 'No Kitchen'}
-                                            </p>
-                                        </div>
-                                    </div>
 
-                                    <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-2" onClick={(e) => e.stopPropagation()}>
-                                        <div className="flex items-center gap-2">
-                                            <Switch
-                                                checked={item.is_available}
-                                                onCheckedChange={() => handleToggleAvailability(item.id, item.is_available)}
-                                            />
-                                            <span className={`text-[11px] font-black uppercase ${item.is_available ? 'text-emerald-600' : 'text-slate-400'}`}>
-                                                {item.is_available ? 'Available' : 'Hidden'}
-                                            </span>
-                                        </div>
-                                        <div className="flex gap-0.5">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-primary/5 transition-colors"
-                                                onClick={() => {
-                                                    setEditItem(item);
-                                                    setSelectedCategoryId(item.category);
-                                                    setFormAvailable(item.is_available);
-                                                    setIsDialogOpen(true);
-                                                    setCatSearchValue(item.category_name || "");
-                                                    setIsCatDropdownOpen(false);
-                                                }}
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                                onClick={() => handleDelete(item.id)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                        <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-2" onClick={(e) => e.stopPropagation()}>
+                                            <div className="flex items-center gap-2">
+                                                <Switch
+                                                    checked={item.is_available}
+                                                    onCheckedChange={() => handleToggleAvailability(item.id, item.is_available)}
+                                                />
+                                                <span className={`text-[11px] font-black uppercase ${item.is_available ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                                    {item.is_available ? 'Available' : 'Hidden'}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-0.5">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-primary/5 transition-colors"
+                                                    onClick={() => {
+                                                        setEditItem(item);
+                                                        setSelectedCategoryId(item.category);
+                                                        setFormAvailable(item.is_available);
+                                                        setCatSearchValue(item.category_name || "");
+                                                        setIsDialogOpen(true);
+                                                    }}
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                                    onClick={() => handleDelete(item.id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
+                                ))}
+                            </div>
+
+                            {hasMore && (
+                                <div className="flex justify-center p-8">
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleLoadMore}
+                                        disabled={loadingMore}
+                                        className="rounded-xl h-12 px-8 font-bold uppercase tracking-widest text-[11px] hover:bg-primary hover:text-white transition-all shadow-sm border-2 border-primary/20"
+                                    >
+                                        {loadingMore ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                Loading...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Load More Items
+                                                <ChevronDown className="h-4 w-4 ml-2" />
+                                            </>
+                                        )}
+                                    </Button>
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                            )}
 
-                    {!loading && filteredItems.length === 0 && (
-                        <div className="card-elevated py-20 text-center flex flex-col items-center justify-center bg-slate-50/50 border-dashed border-2">
-                            <Package className="h-16 w-16 text-slate-200 mb-4" />
-                            <p className="text-xl font-bold text-slate-900">No items found</p>
-                            <p className="text-slate-500 mt-1">Try a different search or filter!</p>
-                        </div>
+                            {!loading && filteredItems.length === 0 && (
+                                <div className="card-elevated py-20 text-center flex flex-col items-center justify-center bg-slate-50/50 border-dashed border-2">
+                                    <Package className="h-16 w-16 text-slate-200 mb-4" />
+                                    <p className="text-xl font-bold text-slate-900">No items found</p>
+                                    <p className="text-slate-500 mt-1">Try a different search or filter!</p>
+                                </div>
+                            )}
+                        </>
                     )}
                 </TabsContent>
 
@@ -1193,33 +1282,33 @@ export default function AdminMenu() {
 
             {/* View Details Dialog */}
             <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-                <DialogContent className="max-w-xl rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden">
-                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8">
+                <DialogContent className="max-w-xl rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
+                    <div className="p-8">
                         <DialogHeader>
-                            <DialogTitle className="text-3xl font-black uppercase tracking-tight flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                            <DialogTitle className="text-3xl font-black uppercase tracking-tight flex items-center gap-3 text-slate-900">
+                                <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-lg shadow-primary/5">
                                     <Info className="h-6 w-6" />
                                 </div>
-                                Item Intelligence
+                                Item Details
                             </DialogTitle>
                         </DialogHeader>
                         {viewItem && (
                             <div className="space-y-6 mt-8">
-                                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+                                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
                                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-2 block">Product Name</Label>
-                                    <div className="text-2xl font-bold">{viewItem.name}</div>
+                                    <div className="text-2xl font-bold text-slate-900">{viewItem.name}</div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+                                    <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
                                         <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-2 block">Price Tag</Label>
-                                        <div className="text-2xl font-black">Rs {viewItem.selling_price}</div>
+                                        <div className="text-2xl font-black text-slate-900">Rs {viewItem.selling_price}</div>
                                     </div>
-                                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+                                    <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
                                         <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-2 block">Status</Label>
                                         <div className={cn(
                                             "flex items-center gap-2 text-base font-black uppercase tracking-widest",
-                                            viewItem.is_available ? "text-emerald-400" : "text-amber-400"
+                                            viewItem.is_available ? "text-emerald-500" : "text-amber-500"
                                         )}>
                                             {viewItem.is_available ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
                                             {viewItem.is_available ? "Live" : "Inactive"}
@@ -1227,9 +1316,9 @@ export default function AdminMenu() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+                                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
                                     <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-2 block">Mapped Category</Label>
-                                    <div className="text-lg font-bold flex items-center gap-2">
+                                    <div className="text-lg font-bold flex items-center gap-2 text-slate-700">
                                         <Tag className="h-5 w-5 text-primary" />
                                         {viewItem.category_name}
                                     </div>
@@ -1238,7 +1327,7 @@ export default function AdminMenu() {
                                 <div className="flex gap-4 pt-4">
                                     <Button
                                         variant="ghost"
-                                        className="flex-1 h-16 rounded-2xl font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/10"
+                                        className="flex-1 h-16 rounded-2xl font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                                         onClick={() => setIsViewDialogOpen(false)}
                                     >
                                         Dismiss
@@ -1252,7 +1341,7 @@ export default function AdminMenu() {
                                         }}
                                     >
                                         <Pencil className="h-5 w-5 mr-3" />
-                                        Edit Node
+                                        Edit Item
                                     </Button>
                                 </div>
                             </div>
