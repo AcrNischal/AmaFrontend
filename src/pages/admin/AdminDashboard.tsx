@@ -192,7 +192,7 @@ export default function AdminDashboard() {
       {/* Top Navigation & Filters */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
             Greetings, {user?.name?.split(' ')[0] || 'Admin'}
           </h1>
           <div className="flex items-center gap-2 text-slate-500 font-medium">
@@ -217,7 +217,7 @@ export default function AdminDashboard() {
           {/* Timeframe Selector */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-11 rounded-xl border-2 font-bold px-4 hover:bg-slate-50 transition-all border-slate-100 shadow-sm gap-2 hover:text-slate-900">
+              <Button variant="outline" className="h-10 sm:h-11 rounded-xl border-2 font-bold px-4 hover:bg-slate-50 transition-all border-slate-100 shadow-sm gap-2 hover:text-slate-900">
                 <Filter className="h-4 w-4 text-primary" />
                 <span className="capitalize">{timeframe}</span>
                 <ChevronDown className="h-3 w-3 opacity-50" />
@@ -238,7 +238,7 @@ export default function AdminDashboard() {
           {timeframe === "custom" && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("h-11 rounded-xl border-2 font-bold px-4 border-slate-100 shadow-sm gap-2", !dateRange.from && "text-muted-foreground")}>
+                <Button variant="outline" className={cn("h-10 sm:h-11 rounded-xl border-2 font-bold px-4 border-slate-100 shadow-sm gap-2", !dateRange.from && "text-muted-foreground")}>
                   <CalendarIcon className="h-4 w-4" />
                   {dateRange.from ? (
                     dateRange.to ? (
@@ -326,7 +326,7 @@ export default function AdminDashboard() {
       {/* Main Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Category breakdown bar chart */}
-        <div className="card-elevated p-8">
+        <div className="card-elevated p-4 sm:p-6 md:p-8">
           <div className="mb-6 text-center">
             <h3 className="text-lg font-black uppercase tracking-tight capitalize">{timeframe} Sales by Category</h3>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{timeframe} Revenue split</p>
@@ -373,7 +373,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Payment Status distribution pie chart */}
-        <div className="card-elevated p-8 text-center">
+        <div className="card-elevated p-4 sm:p-6 md:p-8 text-center">
           <h3 className="text-lg font-black uppercase tracking-tight mb-6 capitalize">{timeframe} Payment Status</h3>
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -412,7 +412,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Payment Methods pie chart */}
-        <div className="card-elevated p-8 text-center">
+        <div className="card-elevated p-4 sm:p-6 md:p-8 text-center">
           <h3 className="text-lg font-black uppercase tracking-tight mb-6 capitalize">{timeframe} Payments</h3>
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -473,7 +473,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main trend chart */}
-      <div className="card-elevated p-8">
+      <div className="card-elevated p-4 sm:p-6 md:p-8">
         <h3 className="text-xl font-bold tracking-tight mb-8 capitalize">{timeframe} Sales Trend</h3>
         <div className="h-[350px] w-full">
           <ResponsiveContainer width="100%" height="100%">

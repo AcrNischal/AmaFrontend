@@ -215,14 +215,14 @@ export default function SuperAdminBranches() {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">All Branches</h1>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-slate-900">All Branches</h1>
                     <p className="text-sm text-muted-foreground font-medium">
                         {loading ? "Loading branches..." : `Manage your ${branches.length} locations.`}
                     </p>
                 </div>
                 <Button
                     onClick={() => setIsAddOpen(true)}
-                    className="gradient-warm text-white font-black uppercase tracking-widest text-xs h-10 px-4 rounded-xl"
+                    className="gradient-warm text-white font-black uppercase tracking-widest text-[10px] sm:text-xs h-9 sm:h-10 px-4 rounded-xl"
                 >
                     <Plus className="h-4 w-4 mr-2" />
                     New Branch
@@ -233,10 +233,10 @@ export default function SuperAdminBranches() {
                 <div className="relative mb-6">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                     <Input
-                        placeholder="Search branches by name or location..."
+                        placeholder="Search branches..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="h-14 pl-12 pr-4 rounded-2xl bg-slate-50/50 border-slate-100 focus:bg-white focus:ring-primary shadow-sm text-lg font-medium"
+                        className="h-11 sm:h-14 pl-12 pr-4 rounded-2xl bg-slate-50/50 border-slate-100 focus:bg-white focus:ring-primary shadow-sm text-base sm:text-lg font-medium"
                     />
                 </div>
 
@@ -279,7 +279,7 @@ export default function SuperAdminBranches() {
                                     <Store className="h-6 w-6" />
                                 </div>
 
-                                <h3 className="text-lg font-bold text-slate-900 mb-1">{branch.name}</h3>
+                                <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1">{branch.name}</h3>
                                 <div className="flex items-center text-sm text-muted-foreground mb-4">
                                     <MapPin className="h-4 w-4 mr-1" />
                                     {branch.location}
@@ -308,10 +308,10 @@ export default function SuperAdminBranches() {
             {/* Details Dialog */}
             <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
                 <DialogContent className="sm:max-w-[425px] rounded-[2rem] overflow-hidden">
-                    <DialogHeader className="bg-slate-50/50 p-6 border-b border-slate-100">
-                        <DialogTitle className="text-xl font-black text-slate-900 flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                <Store className="h-5 w-5" />
+                    <DialogHeader className="bg-slate-50/50 p-4 sm:p-6 border-b border-slate-100">
+                        <DialogTitle className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-3">
+                            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                <Store className="h-4 w-4 sm:h-5 sm:w-5" />
                             </div>
                             Branch Details
                         </DialogTitle>
@@ -330,13 +330,13 @@ export default function SuperAdminBranches() {
                                     {selectedBranch?.location}
                                 </p>
                             </div>
-                            <div className="space-y-1">
+                             <div className="space-y-1">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Tables</Label>
-                                <p className="font-black text-xl text-primary">{selectedBranch?.total_tables || 0}</p>
+                                <p className="font-black text-lg sm:text-xl text-primary">{selectedBranch?.total_tables || 0}</p>
                             </div>
                             <div className="space-y-1 text-right">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lifetime Revenue</Label>
-                                <p className="font-black text-xl text-emerald-600">Rs. {(parseFloat(selectedBranch?.revenue as any) || 0).toLocaleString()}</p>
+                                <p className="font-black text-lg sm:text-xl text-emerald-600">Rs. {(parseFloat(selectedBranch?.revenue as any) || 0).toLocaleString()}</p>
                             </div>
                         </div>
 
@@ -361,18 +361,18 @@ export default function SuperAdminBranches() {
                         </div>
                     </div>
 
-                    <DialogFooter className="bg-slate-50/50 p-6 flex flex-col !flex-col gap-2 sm:space-x-0">
+                    <DialogFooter className="bg-slate-50/50 p-4 sm:p-6 flex flex-col !flex-col gap-2 sm:space-x-0">
                         <Button
                             onClick={handleEditFromDetails}
-                            className="w-full h-12 rounded-xl gradient-warm text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-200"
+                            className="w-full h-10 sm:h-12 rounded-xl gradient-warm text-white font-black uppercase tracking-widest text-[10px] sm:text-xs shadow-lg shadow-orange-200"
                         >
-                            <Pencil className="h-4 w-4 mr-2" />
+                            <Pencil className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                             Edit Branch Details
                         </Button>
                         <Button
                             variant="ghost"
                             onClick={() => setIsDetailsOpen(false)}
-                            className="w-full h-12 rounded-xl font-bold text-slate-400 hover:text-slate-600"
+                            className="w-full h-10 sm:h-12 rounded-xl font-bold text-slate-400 hover:text-slate-600 text-xs sm:text-sm"
                         >
                             Close
                         </Button>
@@ -382,9 +382,9 @@ export default function SuperAdminBranches() {
 
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                 <DialogContent className="sm:max-w-[500px] rounded-[2rem] overflow-hidden">
-                    <DialogHeader>
-                        <DialogTitle className="text-2xl font-black text-slate-900">Add New Branch</DialogTitle>
-                        <DialogDescription className="font-medium">
+                    <DialogHeader className="p-4 sm:p-6">
+                        <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900">Add New Branch</DialogTitle>
+                        <DialogDescription className="font-medium text-xs sm:text-sm">
                             Create a new branch location in the system.
                         </DialogDescription>
                     </DialogHeader>
@@ -396,8 +396,8 @@ export default function SuperAdminBranches() {
                                     id="name"
                                     value={form.name}
                                     onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-                                    placeholder="Ama Bakery - Kathmandu"
-                                    className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm font-bold"
+                                    placeholder="Bakery Name"
+                                    className="h-10 sm:h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm font-bold text-sm"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -406,8 +406,8 @@ export default function SuperAdminBranches() {
                                     id="location"
                                     value={form.location}
                                     onChange={(e) => setForm(prev => ({ ...prev, location: e.target.value }))}
-                                    placeholder="Baneshwor, Kathmandu"
-                                    className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm font-bold"
+                                    placeholder="Location Address"
+                                    className="h-10 sm:h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm font-bold text-sm"
                                 />
                             </div>
                         </div>
@@ -419,7 +419,7 @@ export default function SuperAdminBranches() {
                                     type="button"
                                     variant="outline"
                                     onClick={() => setForm(p => ({ ...p, showManager: true }))}
-                                    className="w-full h-12 rounded-xl border-dashed border-2 border-slate-200 text-slate-500 hover:text-white hover:border-primary transition-all font-bold gap-2"
+                                    className="w-full h-10 sm:h-12 rounded-xl border-dashed border-2 border-slate-200 text-slate-500 hover:text-white hover:border-primary transition-all font-bold gap-2 text-xs"
                                 >
                                     <Plus className="h-4 w-4" />
                                     Add New Manager Account
@@ -449,8 +449,8 @@ export default function SuperAdminBranches() {
                                                 <Input
                                                     value={form.manager_username}
                                                     onChange={(e) => setForm(prev => ({ ...prev, manager_username: e.target.value }))}
-                                                    placeholder="rajdeep_mgr"
-                                                    className="h-12 rounded-xl border-primary/10 bg-white font-bold"
+                                                    placeholder="raj_mgr"
+                                                    className="h-10 sm:h-12 rounded-xl border-primary/10 bg-white font-bold text-sm"
                                                 />
                                             </div>
                                             <div className="space-y-2">
@@ -458,8 +458,8 @@ export default function SuperAdminBranches() {
                                                 <Input
                                                     value={form.manager_full_name}
                                                     onChange={(e) => setForm(prev => ({ ...prev, manager_full_name: e.target.value }))}
-                                                    placeholder="Rajdeep Sharma"
-                                                    className="h-12 rounded-xl border-primary/10 bg-white font-bold"
+                                                    placeholder="Full Name"
+                                                    className="h-10 sm:h-12 rounded-xl border-primary/10 bg-white font-bold text-sm"
                                                 />
                                             </div>
                                         </div>
@@ -470,7 +470,7 @@ export default function SuperAdminBranches() {
                                                     value={form.manager_email}
                                                     onChange={(e) => setForm(prev => ({ ...prev, manager_email: e.target.value }))}
                                                     placeholder="manager@ama.com"
-                                                    className="h-12 rounded-xl border-primary/10 bg-white"
+                                                    className="h-10 sm:h-12 rounded-xl border-primary/10 bg-white text-sm"
                                                 />
                                             </div>
                                             <div className="space-y-2">
@@ -479,7 +479,7 @@ export default function SuperAdminBranches() {
                                                     value={form.manager_phone}
                                                     onChange={(e) => setForm(prev => ({ ...prev, manager_phone: e.target.value }))}
                                                     placeholder="98XXXXXXXX"
-                                                    className="h-12 rounded-xl border-primary/10 bg-white"
+                                                    className="h-10 sm:h-12 rounded-xl border-primary/10 bg-white text-sm"
                                                 />
                                             </div>
                                         </div>
@@ -491,18 +491,18 @@ export default function SuperAdminBranches() {
                             )}
                         </div>
                     </div>
-                    <DialogFooter className="bg-slate-50/50 p-6">
+                    <DialogFooter className="bg-slate-50/50 p-4 sm:p-6">
                         <Button
                             variant="ghost"
                             onClick={() => setIsAddOpen(false)}
-                            className="h-12 rounded-xl font-bold"
+                            className="h-10 sm:h-12 rounded-xl font-bold text-xs sm:text-sm"
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={handleCreate}
                             disabled={isSubmitting}
-                            className="h-12 px-8 rounded-xl gradient-warm text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-200"
+                            className="h-10 sm:h-12 px-8 rounded-xl gradient-warm text-white font-black uppercase tracking-widest text-[10px] sm:text-xs shadow-lg shadow-orange-200"
                         >
                             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Branch"}
                         </Button>
@@ -514,8 +514,8 @@ export default function SuperAdminBranches() {
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
                 <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
                     <DialogHeader>
-                        <DialogTitle className="text-2xl font-black text-slate-900">Edit Branch</DialogTitle>
-                        <DialogDescription className="font-medium">
+                        <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900">Edit Branch</DialogTitle>
+                        <DialogDescription className="font-medium text-xs sm:text-sm">
                             Update branch information.
                         </DialogDescription>
                     </DialogHeader>
@@ -526,8 +526,8 @@ export default function SuperAdminBranches() {
                                 id="edit-name"
                                 value={editForm.name}
                                 onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                                placeholder="Ama Bakery - Kathmandu"
-                                className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm"
+                                placeholder="Bakery Name"
+                                className="h-10 sm:h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-sm"
                             />
                         </div>
                         <div className="space-y-2">
@@ -536,8 +536,8 @@ export default function SuperAdminBranches() {
                                 id="edit-location"
                                 value={editForm.location}
                                 onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
-                                placeholder="Baneshwor, Kathmandu"
-                                className="h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm"
+                                placeholder="Location"
+                                className="h-10 sm:h-12 rounded-xl border-slate-200 focus:ring-primary shadow-sm text-sm"
                             />
                         </div>
                     </div>
@@ -545,14 +545,14 @@ export default function SuperAdminBranches() {
                         <Button
                             variant="ghost"
                             onClick={() => setIsEditOpen(false)}
-                            className="h-12 rounded-xl font-bold"
+                            className="h-10 sm:h-12 rounded-xl font-bold text-xs sm:text-sm"
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={handleUpdate}
                             disabled={isSubmitting}
-                            className="h-12 px-8 rounded-xl gradient-warm text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-orange-200"
+                            className="h-10 sm:h-12 px-8 rounded-xl gradient-warm text-white font-black uppercase tracking-widest text-[10px] sm:text-xs shadow-lg shadow-orange-200"
                         >
                             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Branch"}
                         </Button>
@@ -563,14 +563,14 @@ export default function SuperAdminBranches() {
             <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
                 <AlertDialogContent className="rounded-[2rem] border-2 border-slate-50 shadow-2xl">
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="text-2xl font-black text-slate-900">Delete Branch?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-slate-500 font-medium">
+                        <AlertDialogTitle className="text-xl sm:text-2xl font-black text-slate-900">Delete Branch?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-500 font-medium text-xs sm:text-sm">
                             Are you sure you want to delete <span className="text-primary font-bold">"{branchToDelete?.name}"</span>?
                             This action cannot be undone and will remove all associated data.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="gap-2 sm:gap-0">
-                        <AlertDialogCancel className="h-12 rounded-xl font-bold text-slate-400 border-none hover:text-slate-800 hover:bg-slate-50 transition-all">
+                        <AlertDialogCancel className="h-11 sm:h-12 rounded-xl font-bold text-slate-400 border-none hover:text-slate-800 hover:bg-slate-50 transition-all text-xs sm:text-sm">
                             Keep Branch
                         </AlertDialogCancel>
                         <AlertDialogAction
@@ -578,7 +578,7 @@ export default function SuperAdminBranches() {
                                 e.preventDefault();
                                 handleDelete();
                             }}
-                            className="h-12 px-6 rounded-xl bg-red-500 hover:bg-red-600 text-white font-black uppercase tracking-widest text-xs"
+                            className="h-11 sm:h-12 px-6 rounded-xl bg-red-500 hover:bg-red-600 text-white font-black uppercase tracking-widest text-[10px] sm:text-xs"
                         >
                             Delete Permanently
                         </AlertDialogAction>

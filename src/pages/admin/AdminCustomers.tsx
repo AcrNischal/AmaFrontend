@@ -269,15 +269,15 @@ export default function AdminCustomers() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-foreground">Customers</h1>
-                    <p className="text-sm md:text-base text-muted-foreground">Manage your customer database and purchase history.</p>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">Customers</h1>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Manage your customer database and purchase history.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="hidden sm:flex" onClick={handleExport} disabled={displayCustomers.length === 0}>
+                    <Button variant="outline" size="sm" className="hidden sm:flex h-9 sm:h-10" onClick={handleExport} disabled={displayCustomers.length === 0}>
                         <Download className="h-4 w-4 mr-2" />
                         Export
                     </Button>
-                    <Button onClick={() => setIsAddModalOpen(true)} className="bg-primary hover:bg-primary/90">
+                    <Button onClick={() => setIsAddModalOpen(true)} className="bg-primary hover:bg-primary/90 h-9 sm:h-10 text-xs sm:text-sm">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Customer
                     </Button>
@@ -315,8 +315,8 @@ export default function AdminCustomers() {
                     <div className="h-8 w-[1px] bg-border hidden md:block mx-2" />
                     
                     <Select value={sortBy} onValueChange={setSortBy}>
-                        <SelectTrigger className="w-full md:w-44">
-                            <span className="text-muted-foreground mr-2">Sort:</span>
+                        <SelectTrigger className="w-full md:w-44 h-10 sm:h-11">
+                            <span className="text-muted-foreground mr-2 text-xs sm:text-sm">Sort:</span>
                             <SelectValue placeholder="Default" />
                         </SelectTrigger>
                         <SelectContent>
@@ -371,10 +371,10 @@ export default function AdminCustomers() {
                                     >
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                                                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs sm:text-sm">
                                                     {customer.name && customer.name.length > 0 ? customer.name.charAt(0).toUpperCase() : '?'}
                                                 </div>
-                                                <span className="font-semibold text-foreground">{customer.name}</span>
+                                                <span className="font-semibold text-foreground text-xs sm:text-sm">{customer.name}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -428,27 +428,27 @@ export default function AdminCustomers() {
                 <SheetContent className="sm:max-w-xl overflow-y-auto">
                     {selectedCustomer && (
                         <div className="space-y-8 py-6">
-                            <SheetHeader>
+                             <SheetHeader>
                                 <div className="flex items-center gap-4 mb-2">
-                                    <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl">
+                                    <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl sm:text-2xl">
                                         {selectedCustomer.name && selectedCustomer.name.length > 0 ? selectedCustomer.name.charAt(0).toUpperCase() : '?'}
                                     </div>
                                     <div>
-                                        <SheetTitle className="text-2xl">{selectedCustomer.name}</SheetTitle>
-                                        <SheetDescription>{selectedCustomer.email}</SheetDescription>
+                                        <SheetTitle className="text-xl sm:text-2xl">{selectedCustomer.name}</SheetTitle>
+                                        <SheetDescription className="text-xs sm:text-sm">{selectedCustomer.email}</SheetDescription>
                                     </div>
                                 </div>
                             </SheetHeader>
 
                             {/* Quick Stats */}
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-muted/50 p-6 rounded-xl text-center">
-                                    <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Total Revenue</p>
-                                    <p className="font-bold text-2xl text-foreground">Rs.{selectedCustomer.totalSpent.toLocaleString()}</p>
+                                 <div className="bg-muted/50 p-4 sm:p-6 rounded-xl text-center">
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Total Revenue</p>
+                                    <p className="font-bold text-xl sm:text-2xl text-foreground">Rs.{selectedCustomer.totalSpent.toLocaleString()}</p>
                                 </div>
-                                <div className="bg-muted/50 p-6 rounded-xl text-center">
-                                    <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Orders</p>
-                                    <p className="font-bold text-2xl text-foreground">{selectedCustomer.totalOrders}</p>
+                                <div className="bg-muted/50 p-4 sm:p-6 rounded-xl text-center">
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Orders</p>
+                                    <p className="font-bold text-xl sm:text-2xl text-foreground">{selectedCustomer.totalOrders}</p>
                                 </div>
                             </div>
 
