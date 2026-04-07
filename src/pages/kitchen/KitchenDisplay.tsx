@@ -122,12 +122,14 @@ export default function KitchenDisplay() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [invoiceRes, productData, categoryData, floorData] = await Promise.all([
+      const [invoiceRes, productsResponse, categoryData, floorData] = await Promise.all([
         fetchInvoices({ date: new Date().toLocaleDateString('en-CA') }),
-        fetchProducts(),
+        fetchProducts({ page_size: 1000 }),
         fetchCategories(),
         fetchTables()
       ]);
+
+      const productData = productsResponse?.results || (Array.isArray(productsResponse) ? productsResponse : []);
 
       setFloors(floorData || []);
 

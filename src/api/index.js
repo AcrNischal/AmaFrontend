@@ -373,8 +373,15 @@ export async function fetchProducts(params = {}) {
   const data = await safeJson(res);
   if (!res.ok) throw new Error(data?.message || "Failed to fetch products");
   
-  // DRF PageNumberPagination returns results, count, next, previous.
-  return data.results !== undefined ? data : data.data;
+  if (data && typeof data === 'object' && data.results !== undefined) {
+    // If specific pagination params are requested, return full object
+    if (params.page || params.limit || params.page_size) {
+      return data;
+    }
+    // Otherwise, return the results array directly for backward compatibility
+    return data.results;
+  }
+  return data.data || data;
 }
 
 export async function createProduct(productData) {

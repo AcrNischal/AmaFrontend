@@ -143,7 +143,7 @@ export default function CounterPOS() {
         try {
             // Fetch everything in parallel but catch individual errors to prevent blocking
             const [productsResponse, categoriesResponse, branchResponse] = await Promise.all([
-                fetchProducts().catch(err => {
+                fetchProducts({ page_size: 1000 }).catch(err => {
                     console.error("❌ fetchProducts failed:", err);
                     return null;
                 }),
@@ -165,9 +165,10 @@ export default function CounterPOS() {
                 setBranchInfo(branchResponse);
             }
 
-            // 2. Process Products (Critical but we already checked Array.isArray)
-            if (Array.isArray(productsResponse)) {
-                const mappedProducts: any[] = productsResponse.map((p: any) => ({
+            // 2. Process Products
+            const results = productsResponse?.results || (Array.isArray(productsResponse) ? productsResponse : []);
+            if (results.length > 0) {
+                const mappedProducts: any[] = results.map((p: any) => ({
                     id: p.id.toString(),
                     name: p.name,
                     price: parseFloat(p.selling_price) || 0,
