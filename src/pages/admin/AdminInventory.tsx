@@ -101,10 +101,13 @@ export default function AdminInventory() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [productsData, categoriesData] = await Promise.all([
-        fetchProducts(),
+      const [productsResponse, categoriesData] = await Promise.all([
+        fetchProducts({ page_size: 1000 }),
         fetchCategories()
       ]);
+
+      const productsData = productsResponse?.results || (Array.isArray(productsResponse) ? productsResponse : []);
+
       setProducts(productsData);
       setCategories(categoriesData);
 
