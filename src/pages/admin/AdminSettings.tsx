@@ -162,14 +162,7 @@ export default function AdminSettings() {
                   </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Full Address</Label>
-                <Textarea
-                  className="min-h-[100px] rounded-2xl font-bold bg-slate-50 border-transparent focus:bg-white transition-all p-4 resize-none"
-                  value={branchData?.address || ""}
-                  onChange={(e) => setBranchData({ ...branchData, address: e.target.value })}
-                />
-              </div>
+
             </CardContent>
           </Card>
 
@@ -222,7 +215,7 @@ export default function AdminSettings() {
               <div className="p-8 bg-white text-slate-900 border-x border-b mx-4 mb-8 mt-4 shadow-sm font-mono text-[10px] leading-tight space-y-4">
                 <div className="text-center space-y-1">
                   <p className="text-[14px] font-black uppercase">{branchData?.receipt_header || "AMA BAKERY"}</p>
-                  <p>Tel: {branchData?.phone || "9816020731"}</p>
+                  <p>Tel: {branchData?.phone || "Ph no here"}</p>
                   {branchData?.location && <p>{branchData.location.toUpperCase()}</p>}
                 </div>
 

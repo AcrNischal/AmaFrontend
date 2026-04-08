@@ -380,6 +380,7 @@ export default function CounterOrders() {
     <div class="thermal-header">
         <div class="thermal-title">${branchInfo?.receipt_header || "AMA BAKERY"}</div>
         <div class="thermal-subtitle">Tel: ${branchInfo?.phone || "9816020731"}</div>
+        ${branchInfo?.location ? `<div class="thermal-subtitle">${branchInfo.location.toUpperCase()}</div>` : ""}
     </div>
     
     <div class="thermal-divider"></div>
@@ -1103,6 +1104,7 @@ export default function CounterOrders() {
                             <div className="thermal-header">
                                 <h1 className="thermal-title">{branchInfo?.receipt_header || "AMA BAKERY"}</h1>
                                 <div className="thermal-subtitle">Tel: {branchInfo?.phone || "9816020731"}</div>
+                                {branchInfo?.location && <div className="thermal-subtitle">{branchInfo.location.toUpperCase()}</div>}
                             </div>
 
                             <div className="thermal-divider"></div>
