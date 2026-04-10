@@ -54,6 +54,10 @@ export default function AdminCustomers() {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
+    const [totalCount, setTotalCount] = useState(0);
     const [creating, setCreating] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [editing, setEditing] = useState(false);
@@ -82,7 +86,15 @@ export default function AdminCustomers() {
     });
 
     useEffect(() => {
-        loadCustomers();
+        const delay = searchTerm ? 500 : 0;
+        const timer = setTimeout(() => {
+            loadCustomers(1, true);
+        }, delay);
+
+        return () => clearTimeout(timer);
+    }, [branchId, branchFilter, searchTerm]);
+
+    useEffect(() => {
         if ((currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN') && !branchId) {
             loadBranches();
         }
@@ -97,12 +109,37 @@ export default function AdminCustomers() {
         }
     };
 
-    const loadCustomers = async () => {
-        setLoading(true);
+    const loadCustomers = async (pageNumber: number = 1, isReset: boolean = false) => {
+        if (isReset) {
+            setLoading(true);
+            setPage(1);
+        } else {
+            setLoadingMore(true);
+        }
+
         try {
-            const data = await fetchCustomers();
+            const params: any = { page: pageNumber };
+            if (searchTerm) params.search = searchTerm;
+            if (branchFilter && branchFilter !== 'all') params.branch = branchFilter;
+            else if (branchId) params.branch = branchId;
+
+            const data = await fetchCustomers(params);
+            
+            let results = [];
+            let nextUrl = null;
+            let count = 0;
+
+            if (data && typeof data === 'object' && 'results' in data) {
+                results = data.results;
+                nextUrl = data.next;
+                count = data.count || 0;
+            } else if (Array.isArray(data)) {
+                results = data;
+                count = data.length;
+            }
+
             // Map API data to our interface, providing defaults for missing fields
-            const mapped: Customer[] = data.map((c: any) => {
+            const mapped: Customer[] = results.map((c: any) => {
                 const invoices = c.invoice || [];
                 const totalSpent = invoices.reduce((sum: number, inv: any) => sum + (parseFloat(inv.total_amount) || 0), 0);
 
@@ -122,11 +159,24 @@ export default function AdminCustomers() {
             const scoped =
                 branchId != null ? mapped.filter((c) => c.branch === branchId) : mapped;
 
-            setCustomers(scoped);
+            if (isReset) {
+                setCustomers(scoped);
+            } else {
+                setCustomers(prev => {
+                    const existingIds = new Set(prev.map(c => c.id));
+                    const newCustomers = scoped.filter(c => !existingIds.has(c.id));
+                    return [...prev, ...newCustomers];
+                });
+            }
+
+            setHasMore(!!nextUrl);
+            setTotalCount(count);
+            if (!isReset) setPage(pageNumber);
         } catch (err: any) {
             toast.error(err.message || "Failed to load customers");
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
     };
     const loadCustomerHistory = async (id: number) => {
@@ -173,7 +223,7 @@ export default function AdminCustomers() {
             setIsAddModalOpen(false);
             setNewCustomer({ name: "", email: "", phone: "", address: "" }); // Reset form
             setSelectedBranchId(""); // Reset branch selection
-            loadCustomers(); // Refresh list
+            loadCustomers(1, true); // Refresh list
         } catch (err: any) {
             toast.error(err.message || "Failed to create customer");
         } finally {
@@ -195,7 +245,7 @@ export default function AdminCustomers() {
             toast.success("Customer updated successfully");
             setIsEditMode(false);
             setEditCustomer(null);
-            loadCustomers(); // Refresh list
+            loadCustomers(1, true); // Refresh list
         } catch (err: any) {
             toast.error(err.message || "Failed to update customer");
         } finally {
@@ -211,7 +261,7 @@ export default function AdminCustomers() {
             await deleteCustomer(id);
             toast.success("Customer deleted successfully");
             setSelectedCustomer(null); // Close sheet
-            loadCustomers(); // Refresh list
+            loadCustomers(1, true); // Refresh list
         } catch (err: any) {
             toast.error(err.message || "Failed to delete customer");
         } finally {
@@ -329,7 +379,7 @@ export default function AdminCustomers() {
 
                     <div className="h-8 w-[1px] bg-border hidden md:block mx-2" />
                     <p className="text-sm text-muted-foreground whitespace-nowrap">
-                        Showing <span className="font-medium text-foreground">{displayCustomers.length}</span> customers
+                        Showing <span className="font-medium text-foreground">{displayCustomers.length}</span> of <span className="font-medium text-foreground">{totalCount || displayCustomers.length}</span> customers
                     </p>
                 </div>
             </div>
@@ -417,6 +467,26 @@ export default function AdminCustomers() {
                         </tbody>
                     </table>
                 </div>
+                {hasMore && (
+                    <div className="p-4 border-t flex justify-center bg-muted/20">
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => loadCustomers(page + 1)} 
+                            disabled={loadingMore}
+                            className="gap-2"
+                        >
+                            {loadingMore ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Loading more...
+                                </>
+                            ) : (
+                                <>Load More Customers</>
+                            )}
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Customer Detail Sheet */}

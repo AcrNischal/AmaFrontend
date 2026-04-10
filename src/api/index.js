@@ -492,11 +492,17 @@ export async function deleteBranch(id) {
   return data;
 }
 
-export async function fetchCustomers() {
-  const res = await apiFetch("/api/customer/");
+export async function fetchCustomers(params = {}) {
+  let url = "/api/customer/";
+  const query = new URLSearchParams(params).toString();
+  if (query) {
+    url += `?${query}`;
+  }
+  const res = await apiFetch(url);
   const data = await safeJson(res);
   if (!res.ok) throw new Error(data?.message || "Failed to fetch customers");
-  return data.data;
+  
+  return data.results !== undefined ? data : data.data;
 }
 
 export async function createCustomer(customerData) {
@@ -534,7 +540,10 @@ export async function createInvoice(invoiceData) {
     body: JSON.stringify(invoiceData),
   });
   const data = await safeJson(res);
-  if (!res.ok) throw new Error(data?.message || "Failed to create invoice");
+  if (!res.ok) {
+    const errorMsg = data?.message || (typeof data === 'object' && Object.keys(data).length ? JSON.stringify(data) : "Failed to create invoice");
+    throw new Error(errorMsg);
+  }
   return data.data;
 }
 

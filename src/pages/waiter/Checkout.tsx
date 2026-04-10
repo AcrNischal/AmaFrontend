@@ -68,7 +68,7 @@ export default function Checkout() {
     const [customerSearchTerm, setCustomerSearchTerm] = useState("");
 
     const subtotal = useMemo(() =>
-        state?.cart.reduce((sum, c) => sum + (c.item.price * c.quantity), 0) || 0,
+        (state?.cart || []).reduce((sum, c) => sum + (c.item.price * c.quantity), 0),
         [state?.cart]
     );
 
@@ -98,22 +98,27 @@ export default function Checkout() {
                 branch: user?.branch_id,
                 customer: customer?.id || null,
                 invoice_type: "SALE",
-                notes: specialInstructions,
-                description: `Table ${state?.tableNumber}${specialInstructions ? ` | NOTE: ${specialInstructions}` : ""}`,
-                table_no: state?.tableNumber ? parseInt(state.tableNumber) : null,
+                ...(specialInstructions?.trim() ? { notes: specialInstructions.trim() } : {}),
+                description: `Table ${state?.tableNumber || 'Unknown'}${specialInstructions ? ` | NOTE: ${specialInstructions}` : ""}`,
+                table_no: state?.tableNumber ? parseInt(state.tableNumber) : 1,
                 floor: state?.floorId ? parseInt(state.floorId) : null,
                 tax_amount: taxAmount,
                 discount: discountAmount,
                 paid_amount: paidAmount,
-                payment_method: method,
-                items: state.cart.map(c => ({
-                    item_type: "PRODUCT",
-                    product: parseInt(c.item.id),
-                    quantity: c.quantity,
-                    unit_price: c.item.price,
-                    discount_amount: 0, // Could distribute global discount here if needed
-                    description: c.notes || ""
-                }))
+                ...(method ? { payment_method: method } : {}),
+                items: state.cart.map(c => {
+                    const itemPayload: any = {
+                        item_type: "PRODUCT",
+                        product: parseInt(c.item.id),
+                        quantity: c.quantity,
+                        unit_price: c.item.price,
+                        discount_amount: 0
+                    };
+                    if (c.notes?.trim()) {
+                        itemPayload.description = c.notes.trim();
+                    }
+                    return itemPayload;
+                })
             };
 
             const result = await createInvoice(invoiceData);
@@ -194,7 +199,9 @@ export default function Checkout() {
 
             setChangeAmount(change);
             setShowCashModal(false);
-            navigate('/waiter/tables');
+            setTimeout(() => {
+                navigate('/waiter/tables');
+            }, 300);
         } catch (err) { }
     };
 
@@ -207,7 +214,9 @@ export default function Checkout() {
             });
 
             setShowPaymentConfirmation(false);
-            navigate('/waiter/tables');
+            setTimeout(() => {
+                navigate('/waiter/tables');
+            }, 300);
         } catch (err) { }
     };
 
