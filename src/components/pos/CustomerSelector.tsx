@@ -42,7 +42,8 @@ export function CustomerSelector({ onSelect, selectedCustomerId, searchTerm = ""
         setLoading(true);
         try {
             const data = await fetchCustomers();
-            setCustomers(data);
+            const customersList = Array.isArray(data) ? data : (data.results || data.data || []);
+            setCustomers(customersList);
         } catch (err: any) {
             toast.error(err.message || "Failed to load customers");
         } finally {
