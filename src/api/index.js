@@ -492,11 +492,22 @@ export async function deleteBranch(id) {
   return data;
 }
 
-export async function fetchCustomers() {
-  const res = await apiFetch("/api/customer/");
+export async function fetchCustomers(params = {}, urlOverride = null) {
+  let url = urlOverride || "/api/customer/";
+  if (!urlOverride) {
+    const query = new URLSearchParams(params).toString();
+    if (query) {
+      url += `?${query}`;
+    }
+  }
+  const res = await apiFetch(url);
   const data = await safeJson(res);
   if (!res.ok) throw new Error(data?.message || "Failed to fetch customers");
-  return data.data;
+  
+  if (data && typeof data === 'object' && data.results !== undefined) {
+    return data;
+  }
+  return data.data || data;
 }
 
 export async function createCustomer(customerData) {

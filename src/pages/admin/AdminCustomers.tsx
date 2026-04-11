@@ -54,6 +54,8 @@ export default function AdminCustomers() {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [nextUrl, setNextUrl] = useState<string | null>(null);
     const [creating, setCreating] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [editing, setEditing] = useState(false);
@@ -97,27 +99,33 @@ export default function AdminCustomers() {
         }
     };
 
+    const mapCustomerData = (c: any): Customer => {
+        const invoices = c.invoice || [];
+        const totalSpent = invoices.reduce((sum: number, inv: any) => sum + (parseFloat(inv.total_amount) || 0), 0);
+
+        return {
+            id: c.id,
+            name: c.name,
+            email: c.email || "N/A",
+            phone: c.phone || "N/A",
+            address: c.address || "",
+            totalOrders: invoices.length,
+            totalSpent: totalSpent,
+            lastOrderDate: c.created_at ? new Date(c.created_at).toLocaleDateString() : "N/A",
+            branch: c.branch
+        };
+    };
+
     const loadCustomers = async () => {
         setLoading(true);
         try {
             const data = await fetchCustomers();
-            // Map API data to our interface, providing defaults for missing fields
-            const mapped: Customer[] = data.map((c: any) => {
-                const invoices = c.invoice || [];
-                const totalSpent = invoices.reduce((sum: number, inv: any) => sum + (parseFloat(inv.total_amount) || 0), 0);
+            const customersData = data.results !== undefined ? data.results : (Array.isArray(data) ? data : []);
+            
+            setNextUrl(data.next || null);
 
-                return {
-                    id: c.id,
-                    name: c.name,
-                    email: c.email || "N/A",
-                    phone: c.phone || "N/A",
-                    address: c.address || "",
-                    totalOrders: invoices.length,
-                    totalSpent: totalSpent,
-                    lastOrderDate: c.created_at ? new Date(c.created_at).toLocaleDateString() : "N/A",
-                    branch: c.branch
-                };
-            });
+            // Map API data to our interface, providing defaults for missing fields
+            const mapped: Customer[] = customersData.map(mapCustomerData);
 
             const scoped =
                 branchId != null ? mapped.filter((c) => c.branch === branchId) : mapped;
@@ -127,6 +135,28 @@ export default function AdminCustomers() {
             toast.error(err.message || "Failed to load customers");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadMoreCustomers = async () => {
+        if (!nextUrl) return;
+        setLoadingMore(true);
+        try {
+            const data = await fetchCustomers({}, nextUrl);
+            const customersData = data.results !== undefined ? data.results : (Array.isArray(data) ? data : []);
+            
+            setNextUrl(data.next || null);
+
+            const mapped: Customer[] = customersData.map(mapCustomerData);
+
+            const scoped =
+                branchId != null ? mapped.filter((c) => c.branch === branchId) : mapped;
+
+            setCustomers((prev) => [...prev, ...scoped]);
+        } catch (err: any) {
+            toast.error(err.message || "Failed to load more customers");
+        } finally {
+            setLoadingMore(false);
         }
     };
     const loadCustomerHistory = async (id: number) => {
@@ -417,6 +447,25 @@ export default function AdminCustomers() {
                         </tbody>
                     </table>
                 </div>
+                {nextUrl && (
+                    <div className="p-4 border-t border-border flex justify-center">
+                        <Button
+                            variant="outline"
+                            onClick={loadMoreCustomers}
+                            disabled={loadingMore}
+                            className="bg-card w-full max-w-xs"
+                        >
+                            {loadingMore ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Loading...
+                                </>
+                            ) : (
+                                "Load More"
+                            )}
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Customer Detail Sheet */}
