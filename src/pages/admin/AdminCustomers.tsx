@@ -121,7 +121,7 @@ export default function AdminCustomers() {
         try {
             const data = await fetchCustomers();
             const customersData = data.results !== undefined ? data.results : (Array.isArray(data) ? data : []);
-            
+
             setNextUrl(data.next || null);
 
             // Map API data to our interface, providing defaults for missing fields
@@ -144,7 +144,7 @@ export default function AdminCustomers() {
         try {
             const data = await fetchCustomers({}, nextUrl);
             const customersData = data.results !== undefined ? data.results : (Array.isArray(data) ? data : []);
-            
+
             setNextUrl(data.next || null);
 
             const mapped: Customer[] = customersData.map(mapCustomerData);
@@ -251,13 +251,13 @@ export default function AdminCustomers() {
 
     const displayCustomers = [...customers]
         .filter(c => {
-            const matchesSearch = 
+            const matchesSearch =
                 c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 c.phone.includes(searchTerm);
-            
+
             const matchesBranch = branchFilter === 'all' || String(c.branch) === branchFilter;
-            
+
             return matchesSearch && matchesBranch;
         })
         .sort((a, b) => {
@@ -343,7 +343,7 @@ export default function AdminCustomers() {
                         </Select>
                     )}
                     <div className="h-8 w-[1px] bg-border hidden md:block mx-2" />
-                    
+
                     <Select value={sortBy} onValueChange={setSortBy}>
                         <SelectTrigger className="w-full md:w-44 h-10 sm:h-11">
                             <span className="text-muted-foreground mr-2 text-xs sm:text-sm">Sort:</span>
@@ -477,7 +477,7 @@ export default function AdminCustomers() {
                 <SheetContent className="sm:max-w-xl overflow-y-auto">
                     {selectedCustomer && (
                         <div className="space-y-8 py-6">
-                             <SheetHeader>
+                            <SheetHeader>
                                 <div className="flex items-center gap-4 mb-2">
                                     <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl sm:text-2xl">
                                         {selectedCustomer.name && selectedCustomer.name.length > 0 ? selectedCustomer.name.charAt(0).toUpperCase() : '?'}
@@ -491,7 +491,7 @@ export default function AdminCustomers() {
 
                             {/* Quick Stats */}
                             <div className="grid grid-cols-2 gap-4">
-                                 <div className="bg-muted/50 p-4 sm:p-6 rounded-xl text-center">
+                                <div className="bg-muted/50 p-4 sm:p-6 rounded-xl text-center">
                                     <p className="text-[10px] sm:text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Total Revenue</p>
                                     <p className="font-bold text-xl sm:text-2xl text-foreground">Rs.{selectedCustomer.totalSpent.toLocaleString()}</p>
                                 </div>
@@ -684,7 +684,14 @@ export default function AdminCustomers() {
                                     type="email"
                                     placeholder="john@example.com"
                                     value={newCustomer.email}
-                                    onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+
+                                        // allow only valid email pattern characters
+                                        const filtered = value.replace(/[^a-zA-Z0-9@._-]/g, "");
+
+                                        setNewCustomer({ ...newCustomer, email: filtered });
+                                    }}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -692,7 +699,10 @@ export default function AdminCustomers() {
                                 <Input
                                     placeholder="+977 98XXXXXXX"
                                     value={newCustomer.phone}
-                                    onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                                    onChange={(e) => {
+                                        const onlyNumbers = e.target.value.replace(/\D/g, "");
+                                        setNewCustomer({ ...newCustomer, phone: onlyNumbers });
+                                    }}
                                 />
                             </div>
                             <div className="space-y-2">

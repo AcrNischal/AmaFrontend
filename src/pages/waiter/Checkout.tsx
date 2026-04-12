@@ -411,12 +411,24 @@ export default function Checkout() {
                     <div className="flex gap-3">
                         <div className="flex-1">
                             <Input
-                                type="number"
-                                min="0"
-                                max="100"
+                                type="text"
+                                inputMode="numeric"
                                 placeholder="Discount %"
-                                value={discountPercent || ""}
-                                onChange={(e) => setDiscountPercent(Math.min(100, Math.max(0, Number(e.target.value))))}
+                                value={discountPercent ?? ""}
+                                onChange={(e) => {
+                                    let value = e.target.value.replace(/\D/g, ""); // only digits
+
+                                    if (value === "") {
+                                        setDiscountPercent("");
+                                        return;
+                                    }
+
+                                    let num = Number(value);
+
+                                    if (num > 100) num = 100;
+
+                                    setDiscountPercent(num);
+                                }}
                             />
                         </div>
                         <div className="flex gap-2">
@@ -571,10 +583,24 @@ export default function Checkout() {
                                     <div className="relative">
                                         <div className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-muted-foreground text-xl">Rs.</div>
                                         <Input
-                                            type="number"
+                                            type="text"
+                                            inputMode="decimal"
                                             placeholder="0.00"
                                             value={cashReceived}
-                                            onChange={(e) => setCashReceived(e.target.value)}
+                                            onChange={(e) => {
+                                                let value = e.target.value;
+
+                                                // allow only numbers + one dot
+                                                value = value.replace(/[^0-9.]/g, "");
+
+                                                // prevent multiple dots
+                                                const parts = value.split(".");
+                                                if (parts.length > 2) {
+                                                    value = parts[0] + "." + parts.slice(1).join("");
+                                                }
+
+                                                setCashReceived(value);
+                                            }}
                                             className="text-center text-3xl h-16 font-black border-2 border-primary/20 focus:border-primary pl-8 rounded-xl shadow-inner bg-slate-50"
                                             autoFocus
                                         />
@@ -644,10 +670,10 @@ export default function Checkout() {
                             <div className="relative group">
                                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-primary/20 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
                                 <div className="relative bg-white p-3 rounded-xl mx-auto border border-primary/10 shadow-xl flex flex-col items-center overflow-hidden">
-                                    <img 
-                                        src="/qr.png" 
-                                        alt="QR Code" 
-                                        className="h-48 w-48 object-cover" 
+                                    <img
+                                        src="/qr.png"
+                                        alt="QR Code"
+                                        className="h-48 w-48 object-cover"
                                         onError={(e) => {
                                             const target = e.target as HTMLImageElement;
                                             target.src = "https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=AMABAKERY_PAYMENT";
