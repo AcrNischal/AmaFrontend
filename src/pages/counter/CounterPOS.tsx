@@ -110,6 +110,7 @@ export default function CounterPOS() {
     };
     const [customerSearch, setCustomerSearch] = useState("");
     const [cashReceived, setCashReceived] = useState("");
+    const [receiptData, setReceiptData] = useState<any>(null);
     const [paidAmount, setPaidAmount] = useState(0);
     const [dueAmount, setDueAmount] = useState(0);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -412,6 +413,28 @@ export default function CounterPOS() {
 
             await createInvoice(invoiceData);
 
+            setReceiptData({
+                cart: [...cart],
+                subtotal,
+                taxAmount,
+                taxRate,
+                discountAmount,
+                discountPercent,
+                total,
+                cashReceived,
+                paymentMethod,
+                customer
+            });
+
+            // Clear the cart immediately as requested
+            setCart([]);
+            setCustomer(null);
+            setSelectedFloor(null);
+            setTableNo("1");
+            setPaymentMethod(null);
+            setCashReceived("");
+            setDiscountPercent(0);
+
             setIsProcessing(false);
             setShowCheckoutModal(false);
             setShowSuccessModal(true);
@@ -438,7 +461,16 @@ export default function CounterPOS() {
     };
 
     const handlePrint = () => {
-        const itemRows = cart.map((item, index) => `
+        const pCart = receiptData?.cart || cart;
+        const pSubtotal = receiptData?.subtotal ?? subtotal;
+        const pTaxAmount = receiptData?.taxAmount ?? taxAmount;
+        const pTaxRate = receiptData?.taxRate ?? taxRate;
+        const pDiscountAmount = receiptData?.discountAmount ?? discountAmount;
+        const pTotal = receiptData?.total ?? total;
+        const pCashReceived = receiptData?.cashReceived ?? cashReceived;
+        const pCustomer = receiptData?.customer ?? customer;
+
+        const itemRows = pCart.map((item: any, index: number) => `
             <div class="receipt-item-grid">
                 <div>${index + 1}</div>
                 <div>
@@ -450,16 +482,16 @@ export default function CounterPOS() {
             </div>
         `).join("") || "";
 
-        const taxRow = taxAmount > 0 ? `
+        const taxRow = pTaxAmount > 0 ? `
             <div class="thermal-row">
-                <span>TAX (${taxRate}%)</span>
-                <span>${taxAmount.toFixed(2)}</span>
+                <span>TAX (${pTaxRate}%)</span>
+                <span>${pTaxAmount.toFixed(2)}</span>
             </div>` : "";
 
-        const discountRow = discountAmount > 0 ? `
+        const discountRow = pDiscountAmount > 0 ? `
             <div class="thermal-row" style="color: #dc2626 !important;">
                 <span>DISCOUNT</span>
-                <span>-${discountAmount.toFixed(2)}</span>
+                <span>-${pDiscountAmount.toFixed(2)}</span>
             </div>` : "";
 
         const html = `<!DOCTYPE html>
@@ -507,7 +539,7 @@ export default function CounterPOS() {
         </div>
         <div class="thermal-info-right">
             <div>CSHR: ${operator?.name || "Counter"}</div>
-            <div>CUST: ${customer ? customer.name : "Walk-in"}</div>
+            <div>CUST: ${pCustomer ? pCustomer.name : "Walk-in"}</div>
         </div>
     </div>
 
@@ -527,14 +559,14 @@ export default function CounterPOS() {
     <div style="font-size: 10pt; line-height: 1.5;">
         <div class="thermal-row">
             <span>SUBTOTAL</span>
-            <span>${subtotal.toFixed(2)}</span>
+            <span>${pSubtotal.toFixed(2)}</span>
         </div>
         ${taxRow}
         ${discountRow}
         <div class="thermal-divider"></div>
         <div class="thermal-total-row">
             <span>TOTAL</span>
-            <span>${total.toFixed(2)}</span>
+            <span>${pTotal.toFixed(2)}</span>
         </div>
         <div class="thermal-divider"></div>
         <div class="thermal-row">
@@ -804,6 +836,7 @@ export default function CounterPOS() {
                         showKeypad && "!top-[35%] md:!top-[40%]"
                     )}
                 >
+                    <DialogTitle className="sr-only">Checkout</DialogTitle>
                     <div className={cn("flex flex-col md:flex-row h-auto md:h-[650px] transition-all", showKeypad ? "max-h-[60vh] md:max-h-[70vh]" : "max-h-[90vh]")}>
                         {/* Checkout Info */}
                         <div className={cn("flex-1 p-6 md:p-10 space-y-6 md:space-y-8 overflow-y-auto custom-scrollbar", showKeypad && "pb-40 md:pb-8")}>
@@ -1035,6 +1068,7 @@ export default function CounterPOS() {
             {/* Success Dialog */}
             <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
                 <DialogContent className="max-w-[90vw] sm:max-w-[400px] p-6 md:p-8 text-center space-y-6 rounded-2xl md:rounded-[2.5rem] border-none shadow-3xl">
+                    <DialogTitle className="sr-only">Success</DialogTitle>
                     <div className="h-24 w-24 bg-success/10 rounded-full flex items-center justify-center mx-auto text-success border-4 border-success/5 animate-in zoom-in-75 duration-500">
                         <CheckCircle2 className="h-12 w-12 stroke-[3px]" />
                     </div>
@@ -1047,17 +1081,17 @@ export default function CounterPOS() {
                     <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 space-y-3">
                         <div className="flex justify-between text-sm font-bold">
                             <span className="text-slate-400 uppercase tracking-widest text-[9px]">Total Amount</span>
-                            <span className="text-slate-800">Rs.{total.toFixed(2)}</span>
+                            <span className="text-slate-800">Rs.{(receiptData?.total ?? 0).toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-sm font-bold">
                             <span className="text-slate-400 uppercase tracking-widest text-[9px]">Payment Method</span>
-                            <span className="text-slate-800 uppercase text-[10px]">{paymentMethod}</span>
+                            <span className="text-slate-800 uppercase text-[10px]">{receiptData?.paymentMethod}</span>
                         </div>
-                        {paymentMethod === 'cash' && cashReceived && (
+                        {receiptData?.paymentMethod === 'cash' && receiptData?.cashReceived && (
                             <div className="pt-3 border-t border-dashed border-slate-200">
                                 <div className="flex justify-between text-sm font-black text-success">
                                     <span className="uppercase tracking-widest text-[9px]">Change Returned</span>
-                                    <span>Rs.{(parseFloat(cashReceived) - total).toFixed(2)}</span>
+                                    <span>Rs.{(parseFloat(receiptData.cashReceived) - receiptData.total).toFixed(2)}</span>
                                 </div>
                             </div>
                         )}
@@ -1112,9 +1146,9 @@ export default function CounterPOS() {
                                         <div>INV: #POS-{Date.now().toString().slice(-6)}</div>
                                         <div>DATE: {new Date().toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
                                     </div>
-                                    <div className="thermal-info-right">
+                                <div className="thermal-info-right">
                                         <div>CSHR: {operator?.name || "Counter"}</div>
-                                        <div>CUST: {customer ? customer.name : "Walk-in"}</div>
+                                        <div>CUST: {receiptData?.customer ? receiptData.customer.name : "Walk-in"}</div>
                                     </div>
                                 </div>
 
@@ -1129,7 +1163,7 @@ export default function CounterPOS() {
 
                                 <div className="thermal-divider"></div>
 
-                                {cart.map((item, idx) => (
+                                {receiptData?.cart?.map((item: any, idx: number) => (
                                     <div key={idx} className="receipt-item-grid">
                                         <div>{idx + 1}</div>
                                         <div>
@@ -1146,24 +1180,24 @@ export default function CounterPOS() {
                                 <div style={{ fontSize: '10pt', lineHeight: '1.5' }}>
                                     <div className="thermal-row">
                                         <span>SUBTOTAL</span>
-                                        <span>{subtotal.toFixed(2)}</span>
+                                        <span>{(receiptData?.subtotal ?? 0).toFixed(2)}</span>
                                     </div>
-                                    {taxAmount > 0 && (
+                                    {(receiptData?.taxAmount ?? 0) > 0 && (
                                         <div className="thermal-row">
-                                            <span>TAX ({taxRate}%)</span>
-                                            <span>{taxAmount.toFixed(2)}</span>
+                                            <span>TAX ({receiptData?.taxRate ?? 0}%)</span>
+                                            <span>{(receiptData?.taxAmount ?? 0).toFixed(2)}</span>
                                         </div>
                                     )}
-                                    {discountAmount > 0 && (
+                                    {(receiptData?.discountAmount ?? 0) > 0 && (
                                         <div className="thermal-row text-red-600 font-bold">
-                                            <span>DISCOUNT ({discountPercent}%)</span>
-                                            <span>-{discountAmount.toFixed(2)}</span>
+                                            <span>DISCOUNT ({receiptData?.discountPercent ?? 0}%)</span>
+                                            <span>-{(receiptData?.discountAmount ?? 0).toFixed(2)}</span>
                                         </div>
                                     )}
                                     <div className="thermal-divider"></div>
                                     <div className="thermal-total-row">
                                         <span>TOTAL</span>
-                                        <span>{total.toFixed(2)}</span>
+                                        <span>{(receiptData?.total ?? 0).toFixed(2)}</span>
                                     </div>
                                     <div className="thermal-divider"></div>
                                     <div className="thermal-row">
@@ -1174,12 +1208,12 @@ export default function CounterPOS() {
 
                                     <div className="thermal-row" style={{ fontSize: '9pt', opacity: 0.8 }}>
                                         <span>CASH RECEIVED</span>
-                                        <span>{parseFloat(cashReceived || "0").toFixed(2)}</span>
+                                        <span>{parseFloat(receiptData?.cashReceived || "0").toFixed(2)}</span>
                                     </div>
-                                    {parseFloat(cashReceived) > total && (
+                                    {parseFloat(receiptData?.cashReceived || "0") > (receiptData?.total ?? 0) && (
                                         <div className="thermal-row" style={{ fontSize: '9pt', fontWeight: 'bold' }}>
                                             <span>CHANGE RETURNED</span>
-                                            <span>{(parseFloat(cashReceived) - total).toFixed(2)}</span>
+                                            <span>{(parseFloat(receiptData?.cashReceived || "0") - (receiptData?.total ?? 0)).toFixed(2)}</span>
                                         </div>
                                     )}
                                 </div>
@@ -1210,6 +1244,7 @@ export default function CounterPOS() {
                     }}
                     className="max-w-[320px] p-6 rounded-[2rem] border-none shadow-3xl z-[50]"
                 >
+                    <DialogTitle className="sr-only">Edit Quantity</DialogTitle>
                     <div className="text-center space-y-4">
                         <div className="space-y-1">
                             <h3 className="text-lg font-black text-slate-800 line-clamp-1">{qtyEditItem?.item.name}</h3>
