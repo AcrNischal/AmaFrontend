@@ -454,7 +454,7 @@ export default function Checkout() {
                         Payment Option
                     </h3>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3">
                         <button
                             onClick={() => {
                                 setPaymentTiming("now");
@@ -479,7 +479,7 @@ export default function Checkout() {
                             </span>
                         </button>
 
-                        <button
+                        {/* <button
                             onClick={() => {
                                 setPaymentTiming("later");
                                 setPaymentMethod(null);
@@ -502,7 +502,7 @@ export default function Checkout() {
                             )}>
                                 Pay Later
                             </span>
-                        </button>
+                        </button> */}
                     </div>
                 </Card>
 
