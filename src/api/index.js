@@ -539,6 +539,13 @@ export async function deleteCustomer(id) {
   return data;
 }
 
+export async function fetchCustomerDetail(id) {
+  const res = await apiFetch(`/api/customer/${id}/`);
+  const data = await safeJson(res);
+  if (!res.ok) throw new Error(data?.message || "Failed to fetch customer detail");
+  return data.data;
+}
+
 export async function createInvoice(invoiceData) {
   const res = await apiFetch("/api/invoice/", {
     method: "POST",
@@ -714,7 +721,7 @@ export async function fetchInvoicesByCustomer(customerId) {
   const res = await apiFetch(`/api/invoice/?customer=${customerId}`);
   const data = await safeJson(res);
   if (!res.ok) throw new Error(data?.message || "Failed to fetch invoices for customer");
-  return data.data;
+  return data.results !== undefined ? data.results : (data.data || data);
 }
 
 // Kitchen Type APIs

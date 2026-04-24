@@ -15,7 +15,7 @@ import {
     Loader2,
     Trash2
 } from "lucide-react";
-import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer, fetchInvoicesByCustomer, fetchBranches } from "../../api/index.js";
+import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer, fetchInvoicesByCustomer, fetchBranches, fetchCustomerDetail } from "../../api/index.js";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { Button } from "@/components/ui/button";
@@ -162,14 +162,31 @@ export default function AdminCustomers() {
     const loadCustomerHistory = async (id: number) => {
         setLoadingHistory(true);
         try {
-            const data = await fetchInvoicesByCustomer(id);
-            setSalesHistory(data || []);
+            // As per the user's requirement, we use the customer detail endpoint which returns the invoice array
+            const data = await fetchCustomerDetail(id);
+            setSalesHistory(data.invoice || []);
+            
+            // Optionally update selected customer with latest data if it's different from the list view
+            if (selectedCustomer && selectedCustomer.id === id) {
+                setSelectedCustomer(prev => prev ? { 
+                    ...prev, 
+                    email: data.email || prev.email,
+                    phone: data.phone || prev.phone,
+                    address: data.address || prev.address
+                } : null);
+            }
         } catch (err: any) {
             console.error("Failed to load customer history:", err);
             toast.error("Failed to load sales history");
         } finally {
             setLoadingHistory(false);
         }
+    };
+
+    const validateEmail = (email: string) => {
+        if (!email) return true; // Email is optional
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
     };
 
     const handleCustomerClick = (customer: Customer) => {
@@ -186,6 +203,11 @@ export default function AdminCustomers() {
         // If SuperAdmin/Admin at HQ, branch selection is required
         if ((currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN') && !branchId && !selectedBranchId) {
             toast.error("Please select a branch");
+            return;
+        }
+
+        if (newCustomer.email && !validateEmail(newCustomer.email)) {
+            toast.error("Please enter a valid email address");
             return;
         }
 
@@ -216,6 +238,11 @@ export default function AdminCustomers() {
 
         if (!editCustomer.name || !editCustomer.phone) {
             toast.error("Name and Phone are required");
+            return;
+        }
+
+        if (editCustomer.email && !validateEmail(editCustomer.email)) {
+            toast.error("Please enter a valid email address");
             return;
         }
 
@@ -522,7 +549,11 @@ export default function AdminCustomers() {
                                             <Input
                                                 type="email"
                                                 value={editCustomer?.email || ""}
-                                                onChange={(e) => setEditCustomer(prev => prev ? { ...prev, email: e.target.value } : null)}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    const filtered = value.replace(/[^a-zA-Z0-9@._-]/g, "");
+                                                    setEditCustomer(prev => prev ? { ...prev, email: filtered } : null);
+                                                }}
                                                 placeholder="email@example.com"
                                             />
                                         </div>
@@ -530,7 +561,10 @@ export default function AdminCustomers() {
                                             <label className="text-xs font-medium text-muted-foreground">Phone <span className="text-red-500">*</span></label>
                                             <Input
                                                 value={editCustomer?.phone || ""}
-                                                onChange={(e) => setEditCustomer(prev => prev ? { ...prev, phone: e.target.value } : null)}
+                                                onChange={(e) => {
+                                                    const onlyNumbers = e.target.value.replace(/\D/g, "");
+                                                    setEditCustomer(prev => prev ? { ...prev, phone: onlyNumbers } : null);
+                                                }}
                                                 placeholder="Phone number"
                                             />
                                         </div>
@@ -582,16 +616,16 @@ export default function AdminCustomers() {
                                                 <div key={invoice.id} className="p-4 hover:bg-muted/30 transition-colors">
                                                     <div className="flex items-center justify-between mb-1">
                                                         <span className="font-bold text-sm text-foreground">
-                                                            {invoice.invoice_number}
+                                                            {invoice.invoice_number || `#INV-${invoice.id}`}
                                                         </span>
                                                         <span className="font-black text-sm text-primary">
-                                                            Rs.{parseFloat(invoice.total_amount).toLocaleString()}
+                                                            Rs.{parseFloat(invoice.total_amount || "0").toLocaleString()}
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center justify-between text-[11px]">
                                                         <div className="flex items-center gap-2 text-muted-foreground">
                                                             <Calendar className="h-3 w-3" />
-                                                            {new Date(invoice.created_at).toLocaleDateString()}
+                                                            {invoice.created_at ? new Date(invoice.created_at).toLocaleDateString() : "Date N/A"}
                                                         </div>
                                                         <StatusBadge
                                                             status={invoice.payment_status?.toLowerCase() || "pending"}
