@@ -434,8 +434,12 @@ export default function SuperAdminAccess() {
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Phone no.</Label>
                                 <Input
+                                    type="tel"
                                     value={form.phone}
-                                    onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                                    onChange={e => {
+                                        const val = e.target.value.replace(/\D/g, '');
+                                        setForm(p => ({ ...p, phone: val }));
+                                    }}
                                     placeholder="98XXXXXXXX"
                                     className="h-12 rounded-2xl border-slate-200 focus-visible:ring-primary/20 shadow-sm"
                                     required

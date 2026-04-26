@@ -476,8 +476,12 @@ export default function SuperAdminBranches() {
                                             <div className="space-y-2">
                                                 <Label className="text-[10px] font-black uppercase tracking-widest text-primary/60 ml-1">Phone</Label>
                                                 <Input
+                                                    type="tel"
                                                     value={form.manager_phone}
-                                                    onChange={(e) => setForm(prev => ({ ...prev, manager_phone: e.target.value }))}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.replace(/\D/g, '');
+                                                        setForm(prev => ({ ...prev, manager_phone: val }));
+                                                    }}
                                                     placeholder="98XXXXXXXX"
                                                     className="h-10 sm:h-12 rounded-xl border-primary/10 bg-white text-sm"
                                                 />

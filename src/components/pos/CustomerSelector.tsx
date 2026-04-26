@@ -163,9 +163,13 @@ export function CustomerSelector({ onSelect, selectedCustomerId, searchTerm = ""
                                                 autoFocus={!newName}
                                             />
                                             <Input
+                                                type="tel"
                                                 placeholder="Phone Number"
                                                 value={newPhone}
-                                                onChange={(e) => setNewPhone(e.target.value)}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/\D/g, '');
+                                                    setNewPhone(val);
+                                                }}
                                                 className="h-10"
                                                 autoFocus={!!newName && !newPhone}
                                             />

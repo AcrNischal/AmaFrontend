@@ -569,7 +569,24 @@ export default function SuperAdminOverview() {
                                     <Input value={form.manager_username} onChange={(e) => setForm(p => ({ ...p, manager_username: e.target.value }))} placeholder="Username" className="h-11 rounded-lg bg-white" />
                                     <Input value={form.manager_full_name} onChange={(e) => setForm(p => ({ ...p, manager_full_name: e.target.value }))} placeholder="Full Name" className="h-11 rounded-lg bg-white" />
                                 </div>
-                                <Input value={form.manager_email} onChange={(e) => setForm(p => ({ ...p, manager_email: e.target.value }))} placeholder="Email Address" className="h-11 rounded-lg bg-white" />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Input
+                                        value={form.manager_email}
+                                        onChange={(e) => setForm(p => ({ ...p, manager_email: e.target.value }))}
+                                        placeholder="Email Address"
+                                        className="h-11 rounded-lg bg-white"
+                                    />
+                                    <Input
+                                        type="tel"
+                                        value={form.manager_phone}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/\D/g, '');
+                                            setForm(p => ({ ...p, manager_phone: val }));
+                                        }}
+                                        placeholder="Phone Number"
+                                        className="h-11 rounded-lg bg-white"
+                                    />
+                                </div>
                                 <p className="text-[10px] text-center font-bold text-primary uppercase">Default Pass: amabakery@123</p>
                             </div>
                         )}
