@@ -31,6 +31,7 @@ import AdminInventory from "./pages/admin/AdminInventory";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminCustomers from "./pages/admin/AdminCustomers";
 import AdminReports from "./pages/admin/AdminReports";
+import AdminDailyStats from "./pages/admin/AdminDailyStats";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTables from "./pages/admin/AdminTables";
 
@@ -238,6 +239,7 @@ const App = () => {
               <Route path="customers" element={<AdminCustomers />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="reports" element={<AdminReports />} />
+              <Route path="daily-stats" element={<AdminDailyStats />} />
               <Route path="global-analytics" element={<SuperAdminAnalytics />} />
               <Route path="tables" element={<AdminTables />} />
               <Route path="settings" element={<AdminSettings />} />

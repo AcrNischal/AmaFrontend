@@ -784,3 +784,14 @@ export async function markNotificationRead(id, markAsReceived = false) {
   if (!res.ok) throw new Error(data?.message || "Failed to update notification");
   return data;
 }
+
+export async function fetchDailySales(date) {
+  let url = "/api/dailysales/";
+  if (date) {
+    url += `?date=${date}`;
+  }
+  const res = await apiFetch(url);
+  const data = await safeJson(res);
+  if (!res.ok) throw new Error(data?.message || "Failed to fetch daily sales");
+  return data;
+}
