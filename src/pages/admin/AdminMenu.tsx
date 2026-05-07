@@ -690,7 +690,19 @@ export default function AdminMenu() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="selling_price" className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-1">Selling Value (Rs.)</Label>
-                                        <Input id="selling_price" name="selling_price" className="h-11 sm:h-14 text-xl sm:text-2xl font-black rounded-2xl bg-white/50 backdrop-blur-sm border-2 border-slate-100 focus:border-primary transition-all text-primary shadow-inner" type="number" step="0.01" placeholder="0.00" defaultValue={editItem?.selling_price} required />
+                                        <Input 
+                                            id="selling_price" 
+                                            name="selling_price" 
+                                            className="h-11 sm:h-14 text-xl sm:text-2xl font-black rounded-2xl bg-white/50 backdrop-blur-sm border-2 border-slate-100 focus:border-primary transition-all text-primary shadow-inner" 
+                                            type="text" 
+                                            inputMode="decimal"
+                                            placeholder="0.00" 
+                                            defaultValue={editItem?.selling_price} 
+                                            onInput={(e: any) => {
+                                                e.target.value = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                                            }}
+                                            required 
+                                        />
                                     </div>
                                     <div className="grid grid-cols-2 gap-6 items-end">
                                         <div className="space-y-2 relative">
