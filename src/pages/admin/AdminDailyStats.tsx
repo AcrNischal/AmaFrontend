@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { fetchDailySales } from "@/api/index.js";
 import { getCurrentUser } from "../../auth/auth";
 import { format } from "date-fns";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import {
   Calendar as CalendarIcon,
   ChevronRight,
@@ -10,7 +12,8 @@ import {
   IndianRupee,
   Loader2,
   CalendarDays,
-  ArrowRight
+  ArrowRight,
+  Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -55,6 +58,39 @@ export default function AdminDailyStats() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const exportToExcel = () => {
+    if (!data?.sales || data.sales.length === 0) {
+      toast.error("No data available to export.");
+      return;
+    }
+
+    const branchName = data?.branch || "Branch";
+    const formattedDate = format(date, "yyyy-MM-dd");
+
+    // Prepare data for Excel
+    const excelData = data.sales.map((item: any) => ({
+      "Product Name": item.product__name || "Unknown",
+      "Quantity Sold": item.qty_sold || 0,
+      "Total Revenue": item.total_revenue || 0,
+    }));
+
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Daily Sales");
+
+    // Generate buffer
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    
+    // Create Blob and Save
+    const dataBlob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8" });
+    saveAs(dataBlob, `Daily_Sales_${branchName}_${formattedDate}.xlsx`);
+    
+    toast.success("Daily sales report exported successfully.");
   };
 
   useEffect(() => {
@@ -220,6 +256,16 @@ export default function AdminDailyStats() {
               <h3 className="text-lg font-black uppercase tracking-tight">Product Breakdown</h3>
               <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Itemized sales performance</p>
             </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="rounded-xl font-bold h-9 gap-2 border-2"
+              onClick={exportToExcel}
+              disabled={loading || !data?.sales?.length}
+            >
+              <Download className="h-4 w-4" />
+              Export XLSX
+            </Button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
