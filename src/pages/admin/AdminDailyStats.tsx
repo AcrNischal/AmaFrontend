@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchDailySales } from "@/api/index.js";
+import { getCurrentUser } from "../../auth/auth";
 import { format } from "date-fns";
 import {
   Calendar as CalendarIcon,
@@ -35,9 +36,18 @@ export default function AdminDailyStats() {
 
   const loadData = async (selectedDate: Date) => {
     setLoading(true);
+    const user = getCurrentUser();
+    const branchId = user?.branch_id;
+
+    if (!branchId) {
+      toast.error("No branch selected or assigned.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const formattedDate = format(selectedDate, "yyyy-MM-dd");
-      const result = await fetchDailySales(formattedDate);
+      const result = await fetchDailySales(branchId, formattedDate);
       setData(result);
     } catch (error) {
       console.error("Failed to fetch daily sales:", error);
@@ -51,8 +61,8 @@ export default function AdminDailyStats() {
     loadData(date);
   }, [date]);
 
-  const totalRevenue = data?.sales?.reduce((acc: number, item: any) => acc + item.total_revenue, 0) || 0;
-  const totalItems = data?.sales?.reduce((acc: number, item: any) => acc + item.qty_sold, 0) || 0;
+  const totalRevenue = data?.sales?.reduce((acc: number, item: any) => acc + (item.total_revenue || 0), 0) || 0;
+  const totalItems = data?.sales?.reduce((acc: number, item: any) => acc + (item.qty_sold || 0), 0) || 0;
 
   // Colors for the chart
   const COLORS = ['#8B4513', '#A0522D', '#CD853F', '#DEB887', '#D2691E'];
@@ -167,7 +177,7 @@ export default function AdminDailyStats() {
               </div>
             ) : data?.sales?.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.sales.slice(0, 10)} layout="vertical" margin={{ left: 0, right: 20 }}>
+                <BarChart data={(data?.sales || []).slice(0, 10)} layout="vertical" margin={{ left: 0, right: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                   <XAxis type="number" hide />
                   <YAxis 
@@ -188,7 +198,7 @@ export default function AdminDailyStats() {
                     }}
                   />
                   <Bar dataKey="qty_sold" radius={[0, 10, 10, 0]} barSize={22}>
-                    {data.sales.map((_: any, index: number) => (
+                    {(data?.sales || []).map((_: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Bar>
@@ -227,24 +237,24 @@ export default function AdminDailyStats() {
                       <td colSpan={3} className="px-8 py-6 h-16 bg-slate-100/20"></td>
                     </tr>
                   ))
-                ) : data?.sales?.length > 0 ? (
+                ) : data?.sales && data.sales.length > 0 ? (
                   data.sales.map((item: any) => (
                     <tr key={item.product__id} className="hover:bg-slate-50/50 transition-colors group text-sm">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-lg bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300">
-                            <span className="font-black text-[10px]">{item.product__name.charAt(0)}</span>
+                            <span className="font-black text-[10px]">{item.product__name ? item.product__name.charAt(0) : '?'}</span>
                           </div>
-                          <span className="font-bold text-slate-700">{item.product__name}</span>
+                          <span className="font-bold text-slate-700">{item.product__name || 'Unknown'}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className="inline-flex items-center justify-center h-6 w-10 rounded-lg bg-slate-100 text-[10px] font-black text-slate-600">
-                          {item.qty_sold}
+                          {item.qty_sold || 0}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right font-black text-slate-900">
-                        Rs.{item.total_revenue.toLocaleString()}
+                        Rs.{(item.total_revenue || 0).toLocaleString()}
                       </td>
                     </tr>
                   ))

@@ -785,8 +785,8 @@ export async function markNotificationRead(id, markAsReceived = false) {
   return data;
 }
 
-export async function fetchDailySales(date) {
-  let url = "/api/dailysales/";
+export async function fetchDailySales(branchId, date) {
+  let url = `/api/dailysales/${branchId}/`;
   if (date) {
     url += `?date=${date}`;
   }
