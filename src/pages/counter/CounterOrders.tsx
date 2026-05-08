@@ -213,8 +213,8 @@ export default function CounterOrders() {
         setPaymentAmount(order.due_amount || (order.total_amount - (order.paid_amount || 0)));
 
         // Pick a sensitive default for waiter-handled orders
-        if (order.received_by_waiter && !order.received_by_counter && order.payment_methods?.length > 0) {
-            setPaymentMethod(order.payment_methods[0] as any);
+        if (order.received_by_waiter && !order.received_by_counter && (order.payment_methods_list || order.payment_methods || []).length > 0) {
+            setPaymentMethod((order.payment_methods_list || order.payment_methods || [])[0] as any);
         } else {
             setPaymentMethod("CASH");
         }
@@ -258,8 +258,8 @@ export default function CounterOrders() {
         setPaymentAmount(order.due_amount || (order.total_amount - (order.paid_amount || 0)));
 
         // Pick a sensitive default for waiter-handled orders
-        if (order.received_by_waiter && !order.received_by_counter && order.payment_methods?.length > 0) {
-            setPaymentMethod(order.payment_methods[0] as any);
+        if (order.received_by_waiter && !order.received_by_counter && (order.payment_methods_list || order.payment_methods || []).length > 0) {
+            setPaymentMethod((order.payment_methods_list || order.payment_methods || [])[0] as any);
         } else {
             setPaymentMethod("CASH");
         }
@@ -682,31 +682,36 @@ export default function CounterOrders() {
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex flex-wrap gap-1.5">
-                                                    {order.payment_methods?.length > 0 ? (
-                                                        (() => {
+                                                    {(() => {
+                                                        const pMethods = order.payment_methods_list || order.payment_methods || [];
+                                                        if (pMethods.length > 0) {
                                                             // If waiter ever handled it, prioritize QR then first method for single view
                                                             if (order.received_by_waiter) {
-                                                                const hasQR = order.payment_methods.some((m: string) => m.toUpperCase() === 'QR');
-                                                                const displayMethod = hasQR ? 'QR' : order.payment_methods[0];
+                                                                const hasQR = pMethods.some((m: string) => m.toUpperCase() === 'QR');
+                                                                const displayMethod = hasQR ? 'QR' : pMethods[0];
                                                                 return (
                                                                     <span className="text-[11px] font-black px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 uppercase tracking-tight border border-indigo-100">
                                                                         {displayMethod}
                                                                     </span>
                                                                 );
                                                             }
-                                                            return order.payment_methods.map((m: string, i: number) => (
+                                                            return pMethods.map((m: string, i: number) => (
                                                                 <span key={i} className="text-[11px] font-black px-2 py-0.5 rounded bg-slate-100 text-slate-500 uppercase tracking-tight">
                                                                     {m}
                                                                 </span>
                                                             ));
-                                                        })()
-                                                    ) : order.payment_status === 'PAID' || order.payment_status === 'PARTIAL' ? (
-                                                        <span className="text-[11px] font-black px-2 py-0.5 rounded bg-amber-50 text-amber-600 uppercase tracking-tight">
-                                                            {order.payment_status}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-[11px] font-bold text-slate-300 italic">UNPAID</span>
-                                                    )}
+                                                        } else if (order.payment_status === 'PAID' || order.payment_status === 'PARTIAL') {
+                                                            return (
+                                                                <span className="text-[11px] font-black px-2 py-0.5 rounded bg-amber-50 text-amber-600 uppercase tracking-tight">
+                                                                    {order.payment_status}
+                                                                </span>
+                                                            );
+                                                        } else {
+                                                            return (
+                                                                <span className="text-[11px] font-bold text-slate-300 italic">UNPAID</span>
+                                                            );
+                                                        }
+                                                    })()}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5">
@@ -939,9 +944,10 @@ export default function CounterOrders() {
                                                             { id: 'ONLINE', icon: CreditCard, label: 'Online' }
                                                         ].filter(method => {
                                                             // Detect if waiter ever handled it (Lock to their method)
-                                                            if (selectedOrder?.received_by_waiter && selectedOrder.payment_methods?.length > 0) {
+                                                            const pMethods = selectedOrder?.payment_methods_list || selectedOrder?.payment_methods || [];
+                                                            if (selectedOrder?.received_by_waiter && pMethods.length > 0) {
                                                                 // Compare case-insensitive to be safe
-                                                                return selectedOrder.payment_methods.some((m: string) => m.toUpperCase() === method.id.toUpperCase());
+                                                                return pMethods.some((m: string) => m.toUpperCase() === method.id.toUpperCase());
                                                             }
                                                             return true;
                                                         }).map((method) => (
@@ -981,24 +987,32 @@ export default function CounterOrders() {
 
                                                 {selectedOrder?.received_by_waiter && !selectedOrder?.received_by_counter && (
                                                     <div className="mt-4 pt-4 border-t border-emerald-100 space-y-3">
-                                                        {selectedOrder.payment_methods?.includes('QR') ? (
-                                                            <p className="text-[11px] text-emerald-700 font-bold italic">Online payment (QR). Finalize receipt at counter.</p>
-                                                        ) : (
-                                                            <p className="text-[11px] text-emerald-700 font-bold italic">Waiter ({selectedOrder.received_by_waiter_name}) has cash. Confirm once received.</p>
-                                                        )}
-                                                        <Button
-                                                            className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 font-bold rounded-xl shadow-lg"
-                                                            onClick={() => {
-                                                                const method = selectedOrder.payment_methods?.includes('QR') ? 'QR' : 'CASH';
-                                                                setPaymentMethod(method as any);
-                                                                setPaymentAmount("0");
-                                                                // Small timeout to ensure state is updated
-                                                                setTimeout(() => handlePaymentSubmit(), 50);
-                                                            }}
-                                                            disabled={isPaying}
-                                                        >
-                                                            {isPaying ? <Loader2 className="h-4 w-4 animate-spin" /> : (selectedOrder.payment_methods?.includes('QR') ? "Finalize Receipt" : "Confirm Handover")}
-                                                        </Button>
+                                                        {(() => {
+                                                            const pMethods = selectedOrder?.payment_methods_list || selectedOrder?.payment_methods || [];
+                                                            const hasQR = pMethods.includes('QR');
+                                                            return (
+                                                                <>
+                                                                    {hasQR ? (
+                                                                        <p className="text-[11px] text-emerald-700 font-bold italic">Online payment (QR). Finalize receipt at counter.</p>
+                                                                    ) : (
+                                                                        <p className="text-[11px] text-emerald-700 font-bold italic">Waiter ({selectedOrder.received_by_waiter_name}) has cash. Confirm once received.</p>
+                                                                    )}
+                                                                    <Button
+                                                                        className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 font-bold rounded-xl shadow-lg"
+                                                                        onClick={() => {
+                                                                            const method = hasQR ? 'QR' : 'CASH';
+                                                                            setPaymentMethod(method as any);
+                                                                            setPaymentAmount("0");
+                                                                            // Small timeout to ensure state is updated
+                                                                            setTimeout(() => handlePaymentSubmit(), 50);
+                                                                        }}
+                                                                        disabled={isPaying}
+                                                                    >
+                                                                        {isPaying ? <Loader2 className="h-4 w-4 animate-spin" /> : (hasQR ? "Finalize Receipt" : "Confirm Handover")}
+                                                                    </Button>
+                                                                </>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 )}
                                             </div>
