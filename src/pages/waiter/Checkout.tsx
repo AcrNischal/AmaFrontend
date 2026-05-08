@@ -66,6 +66,7 @@ export default function Checkout() {
     const [changeAmount, setChangeAmount] = useState<number | null>(null);
     const [orderId, setOrderId] = useState<string | null>(null);
     const [customerSearchTerm, setCustomerSearchTerm] = useState("");
+    const [isCustomerSelectorOpen, setIsCustomerSelectorOpen] = useState(false);
 
     const subtotal = useMemo(() =>
         state?.cart.reduce((sum, c) => sum + (c.item.price * c.quantity), 0) || 0,
@@ -147,6 +148,13 @@ export default function Checkout() {
         }
 
         if (paymentTiming === "later") {
+            if (!customer) {
+                toast.error("Customer required for Pay Later", {
+                    description: "Please select a customer first",
+                });
+                setIsCustomerSelectorOpen(true);
+                return;
+            }
             try {
                 await submitInvoice(false, 0);
                 toast.success("Order Confirmed!", {
@@ -249,6 +257,8 @@ export default function Checkout() {
                             onSelect={(c) => setCustomer(c)}
                             searchTerm={customerSearchTerm}
                             onSearchChange={setCustomerSearchTerm}
+                            open={isCustomerSelectorOpen}
+                            onOpenChange={setIsCustomerSelectorOpen}
                         />
 
                         <Separator className="my-2" />
@@ -484,6 +494,10 @@ export default function Checkout() {
                                 setPaymentTiming("later");
                                 setPaymentMethod(null);
                                 setShowPaymentConfirmation(false);
+                                if (!customer) {
+                                    setIsCustomerSelectorOpen(true);
+                                    toast.info("Please select a customer for Pay Later");
+                                }
                             }}
                             className={cn(
                                 "p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 hover:scale-105",

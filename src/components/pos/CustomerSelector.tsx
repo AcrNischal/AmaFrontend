@@ -22,14 +22,27 @@ interface CustomerSelectorProps {
     searchTerm?: string;
     onSearchChange?: (val: string) => void;
     onFocus?: () => void;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
 }
 
-export function CustomerSelector({ onSelect, selectedCustomerId, searchTerm = "", onSearchChange, onFocus }: CustomerSelectorProps) {
+export function CustomerSelector({
+    onSelect,
+    selectedCustomerId,
+    searchTerm = "",
+    onSearchChange,
+    onFocus,
+    open: externalOpen,
+    onOpenChange: setExternalOpen
+}: CustomerSelectorProps) {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [isOpen, setIsOpen] = useState(false);
+    const [internalOpen, setInternalOpen] = useState(false);
+
+    const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
+    const setIsOpen = setExternalOpen !== undefined ? setExternalOpen : setInternalOpen;
     // New customer form state
     const [newName, setNewName] = useState("");
     const [newPhone, setNewPhone] = useState("");
