@@ -48,7 +48,7 @@ interface CheckoutState {
 }
 
 type PaymentTiming = "now" | "later" | null;
-type PaymentMethod = "cod" | "qr" | null;
+type PaymentMethod = "cod" | "qr" | "card" | "credit" | null;
 
 export default function Checkout() {
     const navigate = useNavigate();
@@ -213,12 +213,68 @@ export default function Checkout() {
             // Pay Now flow - show appropriate modal
             if (paymentMethod === "cod") {
                 setShowCashModal(true);
+            } else if (paymentMethod === "card") {
+                handleCardPayment();
+            } else if (paymentMethod === "credit") {
+                handleCreditPayment();
             } else {
                 // QR Code payment
                 setShowPaymentConfirmation(true);
             }
             setShowReceipt(false);
         }
+    };
+
+    const handleCardPayment = async () => {
+        try {
+            const result = await submitInvoice(true, total, "CARD");
+            setReceiptData({
+                cart: [...state.cart],
+                subtotal,
+                taxAmount,
+                taxRate,
+                discountAmount,
+                discountPercent,
+                total,
+                cashReceived: total,
+                paymentMethod: "CARD",
+                customer,
+                invoice_no: result?.id || Date.now().toString().slice(-6)
+            });
+
+            toast.success("Payment Confirmed!", {
+                description: `Table ${state?.tableNumber} - Rs.${total.toFixed(2)} paid via Card`,
+                icon: <CheckCircle2 className="h-5 w-5 text-success" />,
+            });
+
+            navigate('/waiter/tables');
+        } catch (err) { }
+    };
+
+    const handleCreditPayment = async () => {
+        try {
+            const result = await submitInvoice(true, total, "CREDIT");
+            setReceiptData({
+                cart: [...state.cart],
+                subtotal,
+                taxAmount,
+                taxRate,
+                discountAmount,
+                discountPercent,
+                total,
+                cashReceived: total,
+                paymentMethod: "CREDIT",
+                customer,
+                invoice_no: result?.id || Date.now().toString().slice(-6)
+            });
+
+            toast.success("Credit Added!", {
+                description: `Table ${state?.tableNumber} - Rs.${total.toFixed(2)} added to credit`,
+                icon: <CheckCircle2 className="h-5 w-5 text-indigo-500" />,
+            });
+
+            navigate('/waiter/tables');
+        } catch (err) { }
     };
 
     const handleCashPayment = async () => {
@@ -773,6 +829,48 @@ export default function Checkout() {
                                     paymentMethod === "qr" ? "text-primary" : "text-foreground"
                                 )}>
                                     QR Code
+                                </span>
+                            </button>
+
+                            <button
+                                onClick={() => setPaymentMethod("card")}
+                                className={cn(
+                                    "p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 hover:scale-105",
+                                    paymentMethod === "card"
+                                        ? "border-primary bg-primary/10 shadow-lg"
+                                        : "border-border hover:border-primary/50"
+                                )}
+                            >
+                                <CreditCard className={cn(
+                                    "h-8 w-8",
+                                    paymentMethod === "card" ? "text-primary" : "text-muted-foreground"
+                                )} />
+                                <span className={cn(
+                                    "font-semibold",
+                                    paymentMethod === "card" ? "text-primary" : "text-foreground"
+                                )}>
+                                    Card
+                                </span>
+                            </button>
+
+                            <button
+                                onClick={() => setPaymentMethod("credit")}
+                                className={cn(
+                                    "p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 hover:scale-105",
+                                    paymentMethod === "credit"
+                                        ? "border-primary bg-primary/10 shadow-lg"
+                                        : "border-border hover:border-primary/50"
+                                )}
+                            >
+                                <IndianRupee className={cn(
+                                    "h-8 w-8",
+                                    paymentMethod === "credit" ? "text-primary" : "text-muted-foreground"
+                                )} />
+                                <span className={cn(
+                                    "font-semibold",
+                                    paymentMethod === "credit" ? "text-primary" : "text-foreground"
+                                )}>
+                                    Credit
                                 </span>
                             </button>
                         </div>
