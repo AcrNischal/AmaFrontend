@@ -7,11 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { WaiterBottomNav } from "@/components/waiter/WaiterBottomNav";
-import { CreditCard, Banknote, CheckCircle2, IndianRupee, Printer, Clock, X, Loader2, Wallet, QrCode, ChevronDown, ChevronUp, User } from "lucide-react";
+import { CreditCard, Banknote, CheckCircle2, IndianRupee, Printer, Clock, X, Loader2, Wallet, QrCode, ChevronDown, ChevronUp, User, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { fetchInvoices, addPayment, fetchInvoiceDetail } from "@/api/index.js";
+import { fetchInvoices, addPayment, fetchInvoiceDetail, fetchBranch } from "@/api/index.js";
+import { getCurrentUser } from "@/auth/auth";
 import { useOrdersWebSocket } from "@/hooks/useOrdersWebSocket";
 
 export default function PaymentCollection() {
@@ -24,6 +25,8 @@ export default function PaymentCollection() {
   const [cashReceived, setCashReceived] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [receiptData, setReceiptData] = useState<any>(null);
+  const [branchInfo, setBranchInfo] = useState<any>(null);
   const [showOnlineDialog, setShowOnlineDialog] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<any | null>(null);
   const [completedChange, setCompletedChange] = useState<number>(0);
@@ -61,6 +64,21 @@ export default function PaymentCollection() {
   useEffect(() => {
     loadInvoices();
   }, [loadInvoices]);
+
+  useEffect(() => {
+    const loadBranch = async () => {
+      const user = getCurrentUser();
+      if (user?.branch_id) {
+        try {
+          const data = await fetchBranch(user.branch_id);
+          setBranchInfo(data?.data || data);
+        } catch (err) {
+          console.error("Failed to load branch info", err);
+        }
+      }
+    };
+    loadBranch();
+  }, []);
 
   // Play notification sound
 
@@ -161,7 +179,160 @@ export default function PaymentCollection() {
     } else {
       processPayment('CASH', received, 0);
     }
+  };
 
+  const handleViewBill = (order: any) => {
+    setReceiptData({
+      cart: (order.items || []).map((item: any) => ({
+        item: {
+          name: item?.product_name || item?.product?.name || item?.name || `Product #${item?.product || "?"}`,
+          price: parseFloat(item?.unit_price ?? item?.price ?? (item?.product?.selling_price) ?? 0)
+        },
+        quantity: item?.quantity ?? 1,
+        notes: item?.description || item?.notes || ""
+      })),
+      subtotal: parseFloat(order.subtotal_amount || 0),
+      taxAmount: parseFloat(order.tax_amount || 0),
+      taxRate: order.tax_rate || 0,
+      discountAmount: parseFloat(order.discount_amount || 0),
+      total: parseFloat(order.total_amount || 0),
+      invoice_no: order.invoice_number || order.id,
+      customer: order.customer_name ? { name: order.customer_name } : null,
+      paymentMethod: order.payment_status === 'PAID' ? 'PAID' : 'PENDING',
+      date: order.created_at
+    });
+    setShowReceipt(true);
+  };
+
+  const handlePrint = () => {
+    if (!receiptData) return;
+
+    const pCart = receiptData.cart;
+    const pSubtotal = receiptData.subtotal;
+    const pTaxAmount = receiptData.taxAmount;
+    const pTaxRate = receiptData.taxRate;
+    const pDiscountAmount = receiptData.discountAmount;
+    const pTotal = receiptData.total;
+    const pCustomer = receiptData.customer;
+    const user = getCurrentUser();
+
+    const itemRows = pCart.map((item: any, index: number) => `
+            <div class="receipt-item-grid">
+                <div>${index + 1}</div>
+                <div>
+                    ${item.item.name}
+                    ${item.notes ? `<div style="font-size: 8pt; text-transform: none; margin-top: 1mm;">"${item.notes}"</div>` : ""}
+                </div>
+                <div>${item.quantity}</div>
+                <div style="text-align: right;">${(item.item.price * item.quantity).toFixed(2)}</div>
+            </div>
+        `).join("") || "";
+
+    const taxRow = pTaxAmount > 0 ? `
+            <div class="thermal-row">
+                <span>TAX (${pTaxRate}%)</span>
+                <span>${pTaxAmount.toFixed(2)}</span>
+            </div>` : "";
+
+    const discountRow = pDiscountAmount > 0 ? `
+            <div class="thermal-row" style="color: #dc2626 !important;">
+                <span>DISCOUNT</span>
+                <span>-${pDiscountAmount.toFixed(2)}</span>
+            </div>` : "";
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Receipt - Ama Bakery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; color: black !important; background: white !important; font-family: 'Courier New', Courier, monospace !important; }
+        body { width: 80mm; padding: 4mm; }
+        .thermal-header { text-align: center; margin-bottom: 4mm; }
+        .thermal-title { font-size: 16pt; font-weight: bold; margin-bottom: 1mm; letter-spacing: 1px; text-transform: uppercase; }
+        .thermal-subtitle { font-size: 9pt; margin-bottom: 2mm; text-align: center; }
+        .thermal-info-grid { display: grid; grid-template-columns: 1fr 1fr; font-size: 9pt; margin-bottom: 4mm; line-height: 1.4; gap: 2mm; }
+        .thermal-info-left { text-align: left; }
+        .thermal-info-right { text-align: right; }
+        .thermal-row { display: flex; justify-content: space-between; margin-bottom: 1mm; font-size: 10pt; }
+        .thermal-divider { border-top: 1px dashed black; margin: 3mm 0; }
+        .thermal-total-row { font-size: 14pt; font-weight: bold; display: flex; justify-content: space-between; margin-top: 2mm; border-top: 1px dashed black; padding-top: 2mm; }
+        .receipt-item-grid { display: grid; grid-template-columns: 6mm 1fr 10mm 18mm; gap: 1mm; font-size: 9pt; margin-bottom: 1mm; text-transform: uppercase; }
+        .thermal-footer { text-align: center; margin-top: 6mm; font-size: 9pt; font-weight: bold; text-transform: uppercase; }
+        
+        @media print {
+            @page { size: 80mm auto; margin: 0; }
+            body { width: 80mm; padding: 4mm; }
+        }
+    </style>
+</head>
+<body>
+    <div class="thermal-header">
+        <div class="thermal-title">${branchInfo?.receipt_header || "AMA BAKERY"}</div>
+        <div class="thermal-subtitle">Tel: ${branchInfo?.phone || "9816020731"}</div>
+        ${branchInfo?.location ? `<div class="thermal-subtitle">${branchInfo.location.toUpperCase()}</div>` : ""}
+    </div>
+    
+    <div class="thermal-divider"></div>
+    
+    <div class="thermal-info-grid">
+        <div class="thermal-info-left">
+            <div>INV: #${receiptData?.invoice_no || Date.now().toString().slice(-6)}</div>
+            <div>DATE: ${new Date(receiptData.date).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+        </div>
+        <div class="thermal-info-right">
+            <div>WAIT: ${user?.name || "Waiter"}</div>
+            <div>CUST: ${pCustomer ? pCustomer.name : "Walk-in"}</div>
+        </div>
+    </div>
+
+    <div class="thermal-divider"></div>
+    
+    <div class="receipt-item-grid" style="font-weight: bold;">
+        <div>SN</div>
+        <div>ITEM</div>
+        <div>QTY</div>
+        <div style="text-align: right;">TOTAL</div>
+    </div>
+    
+    ${itemRows}
+
+    <div class="thermal-divider"></div>
+
+    <div style="font-size: 10pt; line-height: 1.5;">
+        <div class="thermal-row">
+            <span>SUBTOTAL</span>
+            <span>${pSubtotal.toFixed(2)}</span>
+        </div>
+        ${taxRow}
+        ${discountRow}
+        <div class="thermal-divider"></div>
+        <div class="thermal-total-row">
+            <span>TOTAL</span>
+            <span>${pTotal.toFixed(2)}</span>
+        </div>
+        <div class="thermal-divider"></div>
+        <div class="thermal-row">
+            <span>STATUS</span>
+            <span>${receiptData?.paymentMethod === "PAY_LATER" ? "PENDING" : "PAID"}</span>
+        </div>
+        <div class="thermal-divider"></div>
+    </div>
+
+    <div class="thermal-footer">
+        ${branchInfo?.receipt_footer || "THANK YOU FOR YOUR VISIT!"}
+    </div>
+
+    <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();};};</script>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank', 'width=400,height=700');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    }
   };
 
   const pendingOrdersList = orders.filter(o => !(o.payment_status === 'PAID' || o.payment_status === 'WAITER RECEIVED' || (o.payment_status === 'PARTIAL' && o.received_by_waiter)));
@@ -250,12 +421,25 @@ export default function PaymentCollection() {
           </div>
         </div>
 
-        <button
-          onClick={() => onPaymentClick(order)}
-          className="w-full py-2.5 bg-primary/5 hover:bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest transition-colors border-t border-primary/10"
-        >
-          Collect Payment
-        </button>
+        <div className="flex gap-2 border-t border-primary/10">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewBill(order);
+            }}
+            className="flex-1 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+          >
+            <Receipt className="h-3.5 w-3.5" />
+            View Bill
+          </button>
+          <button
+            onClick={() => onPaymentClick(order)}
+            className="flex-1 py-2.5 bg-primary/5 hover:bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest transition-colors border-l border-primary/10 flex items-center justify-center gap-2"
+          >
+            <Banknote className="h-3.5 w-3.5" />
+            Collect Payment
+          </button>
+        </div>
       </div>
     );
   };
@@ -554,7 +738,115 @@ export default function PaymentCollection() {
 
 
       <WaiterBottomNav />
-    </div >
+
+      {/* Receipt Preview Dialog */}
+      <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
+        <DialogContent className="max-w-[400px] w-[95vw] p-0 border-none bg-transparent shadow-none overflow-visible max-h-[90vh] flex flex-col">
+          <DialogTitle className="sr-only">Bill Preview</DialogTitle>
+          <div className="flex justify-end mb-2">
+            <button
+              onClick={() => setShowReceipt(false)}
+              className="h-10 w-10 flex items-center justify-center rounded-full bg-slate-900/80 text-white backdrop-blur-sm shadow-xl z-50 transition-all active:scale-95"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          <div className="bg-white rounded-2xl overflow-y-auto shadow-2xl relative custom-scrollbar flex flex-col">
+            <div className="p-4 bg-slate-50 border-b flex justify-between items-center sticky top-0 z-10">
+              <span className="text-xs font-bold text-slate-500 uppercase">
+                Bill Preview
+              </span>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => handlePrint()} className="h-8 text-xs font-bold px-4">
+                  <Printer className="h-3.5 w-3.5 mr-1.5" />
+                  Print
+                </Button>
+              </div>
+            </div>
+
+            <div className="thermal-receipt p-6">
+              <div className="thermal-header">
+                <h1 className="thermal-title font-bold text-center">{branchInfo?.receipt_header || "AMA BAKERY"}</h1>
+                <div className="thermal-subtitle text-center">Tel: {branchInfo?.phone || "9816020731"}</div>
+                {branchInfo?.location && <div className="thermal-subtitle text-center">{branchInfo.location.toUpperCase()}</div>}
+              </div>
+
+              <div className="thermal-divider my-4 border-t border-dashed border-black"></div>
+
+              <div className="thermal-info-grid grid grid-cols-2 text-xs gap-2">
+                <div className="thermal-info-left">
+                  <div>INV: #{receiptData?.invoice_no}</div>
+                  <div>DATE: {receiptData?.date ? new Date(receiptData.date).toLocaleDateString() : new Date().toLocaleDateString()}</div>
+                </div>
+                <div className="thermal-info-right text-right">
+                  <div>WAIT: {getCurrentUser()?.name || "Waiter"}</div>
+                  <div>CUST: {receiptData?.customer ? receiptData.customer.name : "Walk-in"}</div>
+                </div>
+              </div>
+
+              <div className="thermal-divider my-4 border-t border-dashed border-black"></div>
+
+              <div className="receipt-item-grid grid grid-cols-[30px_1fr_40px_60px] font-bold text-xs gap-2">
+                <div>SN</div>
+                <div>ITEM</div>
+                <div>QTY</div>
+                <div className="text-right">TOTAL</div>
+              </div>
+
+              <div className="thermal-divider my-2 border-t border-dashed border-black"></div>
+
+              {receiptData?.cart?.map((item: any, idx: number) => (
+                <div key={idx} className="receipt-item-grid grid grid-cols-[30px_1fr_40px_60px] text-xs gap-2 py-1">
+                  <div>{idx + 1}</div>
+                  <div>
+                    {item.item.name}
+                    {item.notes && <div className="text-[10px] italic">"{item.notes}"</div>}
+                  </div>
+                  <div>{item.quantity}</div>
+                  <div className="text-right">{(item.item.price * item.quantity).toFixed(2)}</div>
+                </div>
+              ))}
+
+              <div className="thermal-divider my-4 border-t border-dashed border-black"></div>
+
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span>SUBTOTAL</span>
+                  <span>{(receiptData?.subtotal ?? 0).toFixed(2)}</span>
+                </div>
+                {(receiptData?.taxAmount ?? 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span>TAX ({receiptData?.taxRate ?? 0}%)</span>
+                    <span>{(receiptData?.taxAmount ?? 0).toFixed(2)}</span>
+                  </div>
+                )}
+                {(receiptData?.discountAmount ?? 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span>DISCOUNT</span>
+                    <span>-{(receiptData?.discountAmount ?? 0).toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="thermal-divider my-2 border-t border-dashed border-black"></div>
+                <div className="flex justify-between font-bold text-lg">
+                  <span>TOTAL</span>
+                  <span>Rs.{(receiptData?.total ?? 0).toFixed(2)}</span>
+                </div>
+                <div className="thermal-divider my-2 border-t border-dashed border-black"></div>
+                <div className="flex justify-between">
+                  <span>STATUS</span>
+                  <span>{receiptData?.paymentMethod === "PAY_LATER" ? "PENDING" : "PAID"}</span>
+                </div>
+              </div>
+
+              <div className="thermal-footer text-center mt-8 text-xs font-bold uppercase">
+                {branchInfo?.receipt_footer || "THANK YOU FOR YOUR VISIT!"}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 

@@ -88,7 +88,7 @@ export default function CounterPOS() {
     const [customer, setCustomer] = useState<any>(null);
     const [selectedFloor, setSelectedFloor] = useState<any>(null);
     const [tableNo, setTableNo] = useState<string>("1");
-    const [paymentMethod, setPaymentMethod] = useState<"cash" | "qr" | "online" | null>(null);
+    const [paymentMethod, setPaymentMethod] = useState<"cash" | "qr" | "online" | "card" | "credit" | null>(null);
     const [activeKeypadField, setActiveKeypadField] = useState<'cash' | 'discount' | 'customer' | 'productSearch' | 'table' | null>(null);
     const [showKeypad, setShowKeypad] = useState(false);
     const keyboardRef = useRef<HTMLDivElement>(null);
@@ -401,7 +401,7 @@ export default function CounterPOS() {
                 tax_amount: taxAmount,
                 discount: discountAmount,
                 paid_amount: paymentMethod === 'cash' ? Math.min(total, parseFloat(cashReceived) || total) : total,
-                payment_method: paymentMethod === 'cash' ? "CASH" : "QR",
+                payment_method: paymentMethod?.toUpperCase(),
                 items: cart.map(c => ({
                     item_type: "PRODUCT",
                     product: parseInt(c.item.id),
@@ -862,7 +862,7 @@ export default function CounterPOS() {
 
                                 <div className="space-y-3">
                                     <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Payment Method</Label>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                         <button
                                             onClick={() => setPaymentMethod('cash')}
                                             className={cn(
@@ -881,7 +881,27 @@ export default function CounterPOS() {
                                             )}
                                         >
                                             <QrCode className={cn("h-8 w-8", paymentMethod === 'qr' ? "text-primary" : "text-slate-300")} />
-                                            <span className={cn("text-xs font-black uppercase", paymentMethod === 'qr' ? "text-primary" : "text-slate-400")}>QR Payment</span>
+                                            <span className={cn("text-xs font-black uppercase", paymentMethod === 'qr' ? "text-primary" : "text-slate-400")}>QR</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setPaymentMethod('card')}
+                                            className={cn(
+                                                "flex flex-col items-center justify-center p-6 rounded-3xl border-2 transition-all gap-2",
+                                                paymentMethod === 'card' ? "border-primary bg-primary/5 shadow-inner" : "border-slate-100 hover:border-slate-200"
+                                            )}
+                                        >
+                                            <CreditCard className={cn("h-8 w-8", paymentMethod === 'card' ? "text-primary" : "text-slate-300")} />
+                                            <span className={cn("text-xs font-black uppercase", paymentMethod === 'card' ? "text-primary" : "text-slate-400")}>Card</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setPaymentMethod('credit')}
+                                            className={cn(
+                                                "flex flex-col items-center justify-center p-6 rounded-3xl border-2 transition-all gap-2",
+                                                paymentMethod === 'credit' ? "border-primary bg-primary/5 shadow-inner" : "border-slate-100 hover:border-slate-200"
+                                            )}
+                                        >
+                                            <IndianRupee className={cn("h-8 w-8", paymentMethod === 'credit' ? "text-primary" : "text-slate-300")} />
+                                            <span className={cn("text-xs font-black uppercase", paymentMethod === 'credit' ? "text-primary" : "text-slate-400")}>Credit</span>
                                         </button>
                                     </div>
                                 </div>
@@ -1037,6 +1057,28 @@ export default function CounterPOS() {
                                     <div className="text-center">
                                         <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Total Payable</p>
                                         <p className="text-3xl font-black text-primary">Rs.{total.toFixed(2)}</p>
+                                    </div>
+                                </div>
+                            ) : paymentMethod === 'card' ? (
+                                <div className="flex flex-col items-center justify-center gap-6 animate-in fade-in slide-in-from-right-4 h-full">
+                                    <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                                        <CreditCard className="h-10 w-10 text-primary" />
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Total Payable</p>
+                                        <p className="text-3xl font-black text-primary">Rs.{total.toFixed(2)}</p>
+                                        <p className="text-xs font-bold text-slate-400 mt-4 italic">Swipe or Dip Card on Machine</p>
+                                    </div>
+                                </div>
+                            ) : paymentMethod === 'credit' ? (
+                                <div className="flex flex-col items-center justify-center gap-6 animate-in fade-in slide-in-from-right-4 h-full">
+                                    <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                                        <IndianRupee className="h-10 w-10 text-primary" />
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Amount to Credit</p>
+                                        <p className="text-3xl font-black text-primary">Rs.{total.toFixed(2)}</p>
+                                        <p className="text-xs font-bold text-slate-400 mt-4 italic">Customer credit will be updated</p>
                                     </div>
                                 </div>
                             ) : (
