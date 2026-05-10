@@ -18,6 +18,7 @@ import PaymentCollection from "./pages/waiter/PaymentCollection";
 // Counter Pages
 import CounterPOS from "./pages/counter/CounterPOS";
 import CounterOrders from "./pages/counter/CounterOrders";
+import CounterDashboard from "./pages/counter/CounterDashboard";
 
 // Kitchen Pages
 import KitchenDisplay from "./pages/kitchen/KitchenDisplay";
@@ -61,7 +62,7 @@ const roleRedirectPath = (role?: string) => {
     case "WAITER":
       return "/waiter/tables";
     case "COUNTER":
-      return "/counter/orders";
+      return "/counter/dashboard";
     case "KITCHEN":
       return "/kitchen/display";
     default:
@@ -195,7 +196,6 @@ const App = () => {
               }
             />
 
-            {/* ✅ COUNTER PROTECTED */}
             <Route
               path="/counter/pos"
               element={
@@ -209,6 +209,14 @@ const App = () => {
               element={
                 <ProtectedRoute allowedRoles={["COUNTER", "ADMIN"]}>
                   <CounterOrders />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/counter/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["COUNTER", "ADMIN", "BRANCH_MANAGER"]}>
+                  <CounterDashboard />
                 </ProtectedRoute>
               }
             />
@@ -247,7 +255,7 @@ const App = () => {
 
             {/* Optional: redirect base role paths */}
             <Route path="/waiter" element={<Navigate to="/waiter/tables" replace />} />
-            <Route path="/counter" element={<Navigate to="/counter/orders" replace />} />
+            <Route path="/counter" element={<Navigate to="/counter/dashboard" replace />} />
             <Route path="/kitchen" element={<Navigate to="/kitchen/display" replace />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
 
