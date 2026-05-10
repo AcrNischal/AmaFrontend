@@ -19,7 +19,8 @@ import {
     Check,
     User,
     LogOut,
-    Key
+    Key,
+    LayoutDashboard
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -520,6 +521,14 @@ export default function CounterOrders() {
                     >
                         <ShoppingBag className="h-5 w-5" />
                         Sell Items
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => navigate('/counter/dashboard')}
+                        className="h-11 px-4 rounded-xl font-bold border-2 border-slate-100 hover:bg-slate-50 gap-2 shadow-sm"
+                    >
+                        <LayoutDashboard className="h-5 w-5 text-slate-400" />
+                        Dashboard
                     </Button>
                     <Separator orientation="vertical" className="h-8" />
                     <DropdownMenu>
