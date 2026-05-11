@@ -60,20 +60,17 @@ export default function CounterDashboard() {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const branchId = user?.branch_id;
             const [dashData, invoicesRes, branchRes] = await Promise.all([
-                fetchDashboardDetails(branchId, { timeframe: 'daily' }),
+                fetchDashboardDetails(user?.branch_id, { timeframe: 'daily' }),
                 fetchInvoices({ date: format(new Date(), 'yyyy-MM-dd'), page_size: 10 }),
-                branchId ? fetchBranch(branchId) : Promise.resolve(null)
+                fetchBranch(user?.branch_id).catch(() => null)
             ]);
 
             setDashboardData(dashData);
-            setRecentOrders(invoicesRes.results || invoicesRes || []);
-            if (branchRes && branchRes.success) setBranchInfo(branchRes.data);
-            else if (branchRes) setBranchInfo(branchRes);
+            setRecentOrders(invoicesRes?.results || invoicesRes || []);
+            setBranchInfo(branchRes?.data || branchRes);
         } catch (error) {
             console.error("Failed to load counter dashboard data:", error);
-            toast.error("Failed to load dashboard statistics");
         } finally {
             setLoading(false);
         }
@@ -114,11 +111,11 @@ export default function CounterDashboard() {
                         <Monitor className="h-4 w-4" />
                         Open POS
                     </Button>
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => navigate('/counter/orders')} 
-                        className="rounded-xl hover:bg-slate-100 h-10 w-10 active:scale-95 transition-all shadow-sm border border-slate-100/50" 
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate('/counter/orders')}
+                        className="rounded-xl hover:bg-slate-100 h-10 w-10 active:scale-95 transition-all shadow-sm border border-slate-100/50"
                         title="Order History"
                     >
                         <Clock className="h-6 w-6 text-slate-600" />
@@ -128,7 +125,7 @@ export default function CounterDashboard() {
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-auto p-2 hover:bg-slate-50 flex items-center gap-3 rounded-2xl transition-all text-left">
                                 <div className="text-right hidden md:block">
-                                    <p className="text-sm font-black text-slate-700">{user?.name || "Counter User"}</p>
+                                    <p className="text-sm font-black text-slate-700">{user?.username || "Counter User"}</p>
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{user?.role}</p>
                                 </div>
                                 <div className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-slate-900 flex items-center justify-center text-white shrink-0 shadow-sm">
@@ -165,7 +162,7 @@ export default function CounterDashboard() {
             {/* Main Content Area */}
             <main className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                 <div className="max-w-7xl mx-auto space-y-8">
-                    
+
                     {/* Welcome Banner */}
                     <div className="relative overflow-hidden bg-slate-900 rounded-[2rem] p-8 md:p-12 text-white shadow-2xl">
                         <div className="relative z-10">
@@ -177,7 +174,7 @@ export default function CounterDashboard() {
                             </div>
                             <h2 className="text-3xl md:text-5xl font-black mb-2 tracking-tight">Today's Summary</h2>
                             <p className="text-slate-400 font-medium max-w-xl text-sm md:text-base">
-                                Welcome back, <span className="text-white font-bold">{user?.name?.split(' ')[0]}</span>. 
+                                Welcome back, <span className="text-white font-bold">{user?.username || 'Counter'}</span>.
                                 Here's how {branchInfo?.name || 'the branch'} is performing today.
                             </p>
                         </div>
@@ -190,28 +187,28 @@ export default function CounterDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <StatCard
                             title="Today's Sales"
-                            value={`Rs.${dashboardData?.today_sales?.toLocaleString() || 0}`}
+                            value={`Rs.${(dashboardData?.today_sales || dashboardData?.total_sum || 0).toLocaleString()}`}
                             icon={Banknote}
                             trend={{ value: Number(Math.abs(dashboardData?.sales_percent || 0).toFixed(1)), isPositive: (dashboardData?.sales_percent || 0) >= 0 }}
                             className="bg-white border-2 border-slate-100 hover:border-primary/20 transition-all hover:shadow-xl rounded-3xl"
                         />
                         <StatCard
                             title="Total Orders"
-                            value={dashboardData?.total_orders || 0}
+                            value={dashboardData?.total_orders || dashboardData?.total_count_order || 0}
                             icon={ShoppingBag}
                             trend={{ value: Number(Math.abs(dashboardData?.order_percent || 0).toFixed(1)), isPositive: (dashboardData?.order_percent || 0) >= 0 }}
                             className="bg-white border-2 border-slate-100 hover:border-primary/20 transition-all hover:shadow-xl rounded-3xl"
                         />
                         <StatCard
                             title="Avg. Ticket"
-                            value={`Rs.${dashboardData?.avg_orders ? Number(dashboardData.avg_orders).toFixed(0) : 0}`}
+                            value={`Rs.${dashboardData?.avg_orders || dashboardData?.average_order_value ? Number(dashboardData.avg_orders || dashboardData.average_order_value).toFixed(0) : 0}`}
                             icon={TrendingUp}
                             trend={{ value: Number(Math.abs(dashboardData?.avg_order_percent || 0).toFixed(1)), isPositive: (dashboardData?.avg_order_percent || 0) >= 0 }}
                             className="bg-white border-2 border-slate-100 hover:border-primary/20 transition-all hover:shadow-xl rounded-3xl"
                         />
                         <StatCard
                             title="Busiest Hour"
-                            value={Array.isArray(dashboardData?.peak_hours) && dashboardData.peak_hours.length > 0 ? dashboardData.peak_hours[0] : "—"}
+                            value={Array.isArray(dashboardData?.peak_hours) && dashboardData.peak_hours.length > 0 ? dashboardData.peak_hours.join(", ") : "—"}
                             icon={Clock}
                             subtitle="Peak performance time"
                             className="bg-white border-2 border-slate-100 hover:border-primary/20 transition-all hover:shadow-xl rounded-3xl"
@@ -242,9 +239,9 @@ export default function CounterDashboard() {
                                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                                         <XAxis dataKey="label" fontSize={10} fontWeight={800} axisLine={false} tickLine={false} dy={10} />
                                         <YAxis fontSize={10} fontWeight={800} axisLine={false} tickLine={false} tickFormatter={(v) => `Rs.${v}`} />
-                                        <Tooltip 
+                                        <Tooltip
                                             contentStyle={{ borderRadius: '1.5rem', border: 'none', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', padding: '1rem' }}
-                                            formatter={(v: any) => [`Rs.${Number(v).toLocaleString()}`, 'Sales']} 
+                                            formatter={(v: any) => [`Rs.${Number(v).toLocaleString()}`, 'Sales']}
                                         />
                                         <Area
                                             type="monotone"
@@ -262,7 +259,7 @@ export default function CounterDashboard() {
                         <div className="bg-white rounded-[2rem] border-2 border-slate-100 p-8 shadow-sm">
                             <div className="flex items-center justify-between mb-8">
                                 <div>
-                                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Top Sellers</h3>
+                                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Top Selling Todays</h3>
                                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Today's best performers</p>
                                 </div>
                                 <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -300,8 +297,8 @@ export default function CounterDashboard() {
                                 <h3 className="text-2xl font-black text-slate-800 tracking-tight">Recent Activity</h3>
                                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Live transaction feed</p>
                             </div>
-                            <Button 
-                                variant="outline" 
+                            <Button
+                                variant="outline"
                                 className="rounded-2xl font-black text-[10px] uppercase tracking-widest border-2 hover:bg-slate-50"
                                 onClick={() => navigate('/counter/orders')}
                             >
