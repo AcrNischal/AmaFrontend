@@ -191,23 +191,19 @@ export default function CounterOrders() {
     // Play notification sound
 
 
-    // WebSocket: auto-refresh when invoice created or status updated
+    const wsRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     useOrdersWebSocket(
-        useCallback(
-            (data) => {
-                if (data.type === "invoice_created") {
-                    // New order - auto-refresh list
-                    loadInvoices();
-                } else if (data.type === "invoice_updated" && data.status === "READY") {
-                    // Order ready - auto-refresh list
-                    loadInvoices();
-                } else if (data.type === "invoice_updated") {
-                    loadInvoices();
-                }
-            },
-            [loadInvoices]
-        )
+        useCallback(() => {
+            if (wsRefreshTimerRef.current) clearTimeout(wsRefreshTimerRef.current);
+            wsRefreshTimerRef.current = setTimeout(() => loadInvoices(), 500);
+        }, [loadInvoices])
     );
+
+    useEffect(() => {
+        return () => {
+            if (wsRefreshTimerRef.current) clearTimeout(wsRefreshTimerRef.current);
+        };
+    }, []);
 
     const handlePayOpen = async (order: any) => {
         setSelectedOrder(order);

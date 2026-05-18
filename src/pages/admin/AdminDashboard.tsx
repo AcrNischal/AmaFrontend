@@ -1,5 +1,5 @@
 import { StatCard } from "@/components/admin/StatCard";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { fetchDashboardDetails, fetchInvoices, fetchTables, fetchInvoiceDetail } from "@/api/index.js";
 import { getCurrentUser } from "../../auth/auth";
@@ -80,14 +80,23 @@ export default function AdminDashboard() {
     to: undefined
   });
 
-  // WebSocket: Real-time dashboard updates
+  // WebSocket: debounce HTTP refetches so one invoice save does not open many DB connections
+  const wsRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleWSUpdate = useCallback(() => {
-    // Refresh all data when notified
-    loadDashboardData();
-    loadRecentOrders();
+    if (wsRefreshTimerRef.current) clearTimeout(wsRefreshTimerRef.current);
+    wsRefreshTimerRef.current = setTimeout(() => {
+      loadDashboardData();
+      loadRecentOrders();
+    }, 500);
   }, []);
 
   const { isConnected: wsConnected } = useDashboardWebSocket(user?.branch_id, handleWSUpdate);
+
+  useEffect(() => {
+    return () => {
+      if (wsRefreshTimerRef.current) clearTimeout(wsRefreshTimerRef.current);
+    };
+  }, []);
 
   // Sync wsConnected to sseConnected for UI compatibility
   useEffect(() => {

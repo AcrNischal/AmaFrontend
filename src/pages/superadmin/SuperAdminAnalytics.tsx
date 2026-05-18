@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
     BarChart3,
     TrendingUp,
@@ -59,12 +59,19 @@ export default function SuperAdminAnalytics() {
         to: undefined
     });
 
-    // WebSocket: Real-time dashboard updates
+    const wsRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const handleWSUpdate = useCallback(() => {
-        loadData();
+        if (wsRefreshTimerRef.current) clearTimeout(wsRefreshTimerRef.current);
+        wsRefreshTimerRef.current = setTimeout(() => loadData(), 500);
     }, []);
 
     const { isConnected: wsConnected } = useDashboardWebSocket(null, handleWSUpdate);
+
+    useEffect(() => {
+        return () => {
+            if (wsRefreshTimerRef.current) clearTimeout(wsRefreshTimerRef.current);
+        };
+    }, []);
 
     // Sync connection status to local state for UI
     useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Store,
@@ -134,12 +134,19 @@ export default function SuperAdminOverview() {
         manager_phone: "",
     });
 
-    // WebSocket: Real-time dashboard updates
+    const wsRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const handleWSUpdate = useCallback(() => {
-        loadData();
+        if (wsRefreshTimerRef.current) clearTimeout(wsRefreshTimerRef.current);
+        wsRefreshTimerRef.current = setTimeout(() => loadData(), 500);
     }, []);
 
     const { isConnected: wsConnected } = useDashboardWebSocket(null, handleWSUpdate);
+
+    useEffect(() => {
+        return () => {
+            if (wsRefreshTimerRef.current) clearTimeout(wsRefreshTimerRef.current);
+        };
+    }, []);
 
     useEffect(() => {
         loadData();

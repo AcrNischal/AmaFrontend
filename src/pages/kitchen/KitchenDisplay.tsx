@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { OrderCard } from "@/components/kitchen/OrderCard";
 import { branches } from "@/lib/mockData";
@@ -31,8 +31,8 @@ import {
 import { toast } from "sonner";
 import { getCurrentUser, logout } from "../../auth/auth";
 import { ChangePasswordModal } from "@/components/auth/ChangePasswordModal";
-import { fetchInvoices, fetchProducts, fetchCategories, updateInvoiceStatus, fetchTables, fetchInvoiceDetail, getAccessToken } from "../../api/index.js";
-import { WS_BASE_URL } from "../../api/config";
+import { fetchInvoices, fetchProducts, fetchCategories, updateInvoiceStatus, fetchTables, fetchInvoiceDetail } from "../../api/index.js";
+import { useOrdersWebSocket } from "@/hooks/useOrdersWebSocket";
 
 export default function KitchenDisplay() {
   const navigate = useNavigate();
@@ -59,63 +59,32 @@ export default function KitchenDisplay() {
   }, []);
 
 
-  // WebSocket: listen for new invoices and refresh kitchen data
-  useEffect(() => {
-    let timeoutId: any;
-    const token = getAccessToken();
-    let wsUrl = WS_BASE_URL + "/ws/kitchen/";
-
-    if (token) {
-      wsUrl += `?token=${token}`;
-    }
-
-    const connect = () => {
-      console.log(`[Kitchen WS] Connecting to ${wsUrl.split('?')[0]}`);
-      const socket = new WebSocket(wsUrl);
-
-      socket.onopen = () => {
-        setSocketConnected(true);
-        console.log("[Kitchen WS] Connected successfully");
-      };
-
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
+  const wsRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { isConnected: kitchenWsConnected } = useOrdersWebSocket(
+    useCallback(
+      (data) => {
+        if (wsRefreshTimerRef.current) clearTimeout(wsRefreshTimerRef.current);
+        wsRefreshTimerRef.current = setTimeout(() => {
           if (data.type === "invoice_created") {
             toast.success("New Order Received!", {
               description: "A new order has been placed",
               icon: <Bell className="h-5 w-5 text-primary" />,
             });
-            loadData();
-          } else if (data.type === "invoice_updated") {
-            loadData();
           }
-        } catch {
-          // Ignore malformed messages
-        }
-      };
+          loadData();
+        }, 500);
+      },
+      []
+    )
+  );
 
-      socket.onclose = (event) => {
-        setSocketConnected(false);
-        if (!event.wasClean) {
-          console.warn("[Kitchen WS] Connection closed, reconnecting in 5s...");
-          timeoutId = setTimeout(connect, 5000);
-        }
-      };
+  useEffect(() => {
+    setSocketConnected(kitchenWsConnected);
+  }, [kitchenWsConnected]);
 
-      socket.onerror = (err) => {
-        console.error("[Kitchen WS] Error:", err);
-        socket.close();
-      };
-
-      return socket;
-    };
-
-    const socket = connect();
-
+  useEffect(() => {
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      socket.close();
+      if (wsRefreshTimerRef.current) clearTimeout(wsRefreshTimerRef.current);
     };
   }, []);
 

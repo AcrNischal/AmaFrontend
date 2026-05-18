@@ -1,76 +1,112 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { WS_BASE_URL } from "../api/config";
 import { getAccessToken } from "../api/index.js";
 
-export function useDashboardWebSocket(branchId: number | string | null | undefined, onUpdate: () => void) {
-    const socketRef = useRef<WebSocket | null>(null);
-    const [isConnected, setIsConnected] = useState(false);
+const MIN_RECONNECT_MS = 5000;
+const MAX_RECONNECT_MS = 60000;
 
-    const connect = useCallback(() => {
-        const token = getAccessToken();
-        let wsUrl = branchId
-            ? `${WS_BASE_URL}/ws/dashboard/${branchId}/`
-            : `${WS_BASE_URL}/ws/dashboard/`;
+/**
+ * WebSocket for branch manager / super admin dashboards.
+ * Pushes a lightweight "refresh" signal; HTTP fetches data (debounced in the page).
+ */
+export function useDashboardWebSocket(
+  branchId: number | string | null | undefined,
+  onUpdate: () => void
+) {
+  const socketRef = useRef<WebSocket | null>(null);
+  const onUpdateRef = useRef(onUpdate);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  const intentionalCloseRef = useRef(false);
+  const [isConnected, setIsConnected] = useState(false);
 
-        // Append token if available for authentication in cross-origin production environments
-        if (token) {
-            wsUrl += `?token=${token}`;
-        }
+  onUpdateRef.current = onUpdate;
 
-        console.log(`[Dashboard WS] Connecting to ${wsUrl.split('?')[0]}`);
+  useEffect(() => {
+    intentionalCloseRef.current = false;
 
-        try {
-            const socket = new WebSocket(wsUrl);
+    const clearReconnectTimer = () => {
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+    };
 
-            socket.onopen = () => {
-                console.log(`[Dashboard WS] Connected successfully`);
-                setIsConnected(true);
-            };
+    const scheduleReconnect = () => {
+      if (intentionalCloseRef.current) return;
+      clearReconnectTimer();
+      const attempt = reconnectAttemptRef.current;
+      const delay = Math.min(MIN_RECONNECT_MS * 2 ** attempt, MAX_RECONNECT_MS);
+      reconnectAttemptRef.current = attempt + 1;
+      reconnectTimerRef.current = setTimeout(connect, delay);
+    };
 
-            socket.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === "dashboard_update") {
-                        console.log("[Dashboard WS] Update received");
-                        onUpdate();
-                    }
-                } catch (err) {
-                    console.error("[Dashboard WS] Parse error:", err);
-                }
-            };
+    function connect() {
+      if (intentionalCloseRef.current) return;
 
-            socket.onclose = (event) => {
-                setIsConnected(false);
-                if (event.wasClean) {
-                    console.log(`[Dashboard WS] Connection closed cleanly`);
-                } else {
-                    console.warn(`[Dashboard WS] Connection died. Reconnecting in 5s...`);
-                    setTimeout(connect, 5000);
-                }
-            };
+      const existing = socketRef.current;
+      if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
+        return;
+      }
 
-            socket.onerror = (err) => {
-                console.error("[Dashboard WS] Error:", err);
-                // socket.close() will trigger onclose and then reconnect
-                socket.close();
-            };
+      const token = getAccessToken();
+      let wsUrl = branchId
+        ? `${WS_BASE_URL}/ws/dashboard/${branchId}/`
+        : `${WS_BASE_URL}/ws/dashboard/`;
+      if (token) {
+        wsUrl += `?token=${token}`;
+      }
 
-            socketRef.current = socket;
-        } catch (err) {
-            console.error("[Dashboard WS] Connection failure:", err);
-            setTimeout(connect, 5000); // Retry on initial failure
-        }
-    }, [branchId, onUpdate]);
+      try {
+        const socket = new WebSocket(wsUrl);
 
-    useEffect(() => {
-        connect();
-        return () => {
-            if (socketRef.current) {
-                console.log("[Dashboard WS] Cleaning up connection");
-                socketRef.current.close();
-            }
+        socket.onopen = () => {
+          reconnectAttemptRef.current = 0;
+          setIsConnected(true);
         };
-    }, [connect]);
 
-    return { socketRef, isConnected };
+        socket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === "dashboard_update") {
+              onUpdateRef.current();
+            }
+          } catch {
+            // Ignore malformed messages
+          }
+        };
+
+        socket.onclose = (event) => {
+          setIsConnected(false);
+          socketRef.current = null;
+          if (!intentionalCloseRef.current && !event.wasClean) {
+            scheduleReconnect();
+          }
+        };
+
+        socket.onerror = () => {
+          socket.close();
+        };
+
+        socketRef.current = socket;
+      } catch {
+        scheduleReconnect();
+      }
+    }
+
+    connect();
+
+    return () => {
+      intentionalCloseRef.current = true;
+      clearReconnectTimer();
+      const socket = socketRef.current;
+      if (socket) {
+        socket.close();
+        socketRef.current = null;
+      }
+      setIsConnected(false);
+    };
+  }, [branchId]);
+
+  return { socketRef, isConnected };
 }
