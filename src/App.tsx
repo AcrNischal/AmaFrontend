@@ -36,6 +36,9 @@ import AdminDailyStats from "./pages/admin/AdminDailyStats";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTables from "./pages/admin/AdminTables";
 
+// Counter Layout
+import { CounterLayout } from "./components/layout/CounterLayout";
+
 // Super Admin
 import SuperAdminLogin from "./pages/SuperAdminLogin";
 import { SuperAdminLayout } from "./components/layout/SuperAdminLayout";
@@ -196,30 +199,25 @@ const App = () => {
               }
             />
 
+            {/* ✅ COUNTER PROTECTED */}
             <Route
-              path="/counter/pos"
-              element={
-                <ProtectedRoute allowedRoles={["COUNTER", "BRANCH_MANAGER", "ADMIN"]}>
-                  <CounterPOS />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/counter/orders"
-              element={
-                <ProtectedRoute allowedRoles={["COUNTER", "ADMIN"]}>
-                  <CounterOrders />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/counter/dashboard"
               element={
                 <ProtectedRoute allowedRoles={["COUNTER", "ADMIN", "BRANCH_MANAGER"]}>
-                  <CounterDashboard />
+                  <CounterLayout />
                 </ProtectedRoute>
               }
-            />
+            >
+              <Route path="/counter/dashboard" element={<CounterDashboard />} />
+              <Route path="/counter/pos" element={<CounterPOS />} />
+              <Route
+                path="/counter/orders"
+                element={
+                  <ProtectedRoute allowedRoles={["COUNTER", "ADMIN"]}>
+                    <CounterOrders />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
 
             {/* ✅ KITCHEN PROTECTED */}
             <Route
