@@ -217,6 +217,7 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/counter/daily-sales" element={<AdminDailyStats />} />
             </Route>
 
             {/* ✅ KITCHEN PROTECTED */}

@@ -343,7 +343,7 @@ export default function CounterDashboard() {
                                         } else if (salesFilter === 'category') {
                                             name = item.product__category__name || "Unknown Category";
                                         } else if (salesFilter === 'kitchentype') {
-                                            name = item.productcategorykitchentypename || "Unknown Kitchen Type";
+                                            name = item.product__category__kitchentype__name || item.productcategorykitchentypename || "Unknown Kitchen Type";
                                         }
 
                                         return (

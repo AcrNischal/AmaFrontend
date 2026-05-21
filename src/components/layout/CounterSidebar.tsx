@@ -4,7 +4,8 @@ import {
     LayoutDashboard,
     Monitor,
     Clock,
-    Shield
+    Shield,
+    BarChart3
 } from "lucide-react";
 import { getCurrentUser } from "../../auth/auth";
 
@@ -12,6 +13,7 @@ const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/counter/dashboard" },
     { icon: Monitor, label: "POS Terminal", path: "/counter/pos" },
     { icon: Clock, label: "Order History", path: "/counter/orders" },
+    { icon: BarChart3, label: "Daily Sales", path: "/counter/daily-sales" },
 ];
 
 interface CounterSidebarProps {
