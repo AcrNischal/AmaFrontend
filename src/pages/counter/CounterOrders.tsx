@@ -20,7 +20,8 @@ import {
     User,
     LogOut,
     Key,
-    LayoutDashboard
+    LayoutDashboard,
+    Menu
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -498,14 +499,27 @@ export default function CounterOrders() {
             {/* Header */}
             <header className="h-16 bg-white border-b px-6 pr-14 flex items-center justify-between shrink-0 z-10">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate('/counter/pos')} className="rounded-xl">
-                        <ChevronLeft className="h-6 w-6" />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="md:hidden rounded-xl h-10 w-10"
+                        onClick={() => window.dispatchEvent(new CustomEvent("open-counter-sidebar"))}
+                    >
+                        <Menu className="h-6 w-6 text-slate-600" />
                     </Button>
-                    <div className="flex items-center gap-3">
-                        <div className="bg-primary/10 h-10 w-10 rounded-xl flex items-center justify-center">
-                            <Monitor className="h-6 w-6 text-primary" />
+                    <div className="hidden md:flex items-center gap-4">
+                        <Button variant="ghost" size="icon" onClick={() => navigate('/counter/pos')} className="rounded-xl mr-2">
+                            <ChevronLeft className="h-6 w-6" />
+                        </Button>
+                        <div className="flex items-center gap-3">
+                            <div className="bg-primary/10 h-10 w-10 rounded-xl flex items-center justify-center">
+                                <Monitor className="h-6 w-6 text-primary" />
+                            </div>
+                            <h1 className="text-xl font-black text-slate-800">Order History</h1>
                         </div>
-                        <h1 className="text-xl font-black text-slate-800">Order History</h1>
+                    </div>
+                    <div className="md:hidden">
+                        <h1 className="text-base font-bold text-slate-800 leading-none">Order History</h1>
                     </div>
                 </div>
 

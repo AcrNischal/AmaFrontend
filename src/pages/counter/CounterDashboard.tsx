@@ -1,7 +1,7 @@
 import { StatCard } from "@/components/admin/StatCard";
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchDashboardDetails, fetchInvoices, fetchBranch } from "@/api/index.js";
+import { fetchDashboardDetails, fetchInvoices, fetchBranch, fetchDailySales } from "@/api/index.js";
 import { getCurrentUser, logout } from "../../auth/auth";
 import { toast } from "sonner";
 import {
@@ -17,7 +17,10 @@ import {
     ChevronRight,
     ArrowUpRight,
     Calendar,
-    Search
+    Search,
+    ChevronDown,
+    Loader2,
+    Menu
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -57,6 +60,32 @@ export default function CounterDashboard() {
     const [branchInfo, setBranchInfo] = useState<any>(null);
     const [showChangePassword, setShowChangePassword] = useState(false);
 
+    const [salesFilter, setSalesFilter] = useState<'product' | 'category' | 'kitchentype'>('product');
+    const [salesData, setSalesData] = useState<any[]>([]);
+    const [salesLoading, setSalesLoading] = useState(false);
+
+    const loadSalesData = useCallback(async (filter: 'product' | 'category' | 'kitchentype') => {
+        if (!user?.branch_id) return;
+        setSalesLoading(true);
+        try {
+            const dateStr = format(new Date(), 'yyyy-MM-dd');
+            const apiFilter = filter === 'product' ? '' : filter;
+            const res = await fetchDailySales(user.branch_id, dateStr, apiFilter);
+            setSalesData(res?.sales || []);
+        } catch (error) {
+            console.error("Failed to load daily sales:", error);
+            toast.error("Failed to load daily sales data");
+        } finally {
+            setSalesLoading(false);
+        }
+    }, [user?.branch_id]);
+
+    useEffect(() => {
+        if (user?.branch_id) {
+            loadSalesData(salesFilter);
+        }
+    }, [salesFilter, user?.branch_id, loadSalesData]);
+
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
@@ -93,12 +122,25 @@ export default function CounterDashboard() {
             {/* Top Header */}
             <header className="h-16 bg-white border-b px-6 pr-14 flex items-center justify-between shrink-0 z-10">
                 <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm bg-white p-0.5">
-                        <img src="/logos/logo1white.jfif" alt="AMA BAKERY" className="h-full w-full object-cover rounded-full" />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="md:hidden rounded-xl h-10 w-10"
+                        onClick={() => window.dispatchEvent(new CustomEvent("open-counter-sidebar"))}
+                    >
+                        <Menu className="h-6 w-6 text-slate-600" />
+                    </Button>
+                    <div className="hidden md:flex items-center gap-4">
+                        <div className="h-10 w-10 md:h-12 md:w-12 rounded-full flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm bg-white p-0.5">
+                            <img src="/logos/logo1white.jfif" alt="AMA BAKERY" className="h-full w-full object-cover rounded-full" />
+                        </div>
+                        <div>
+                            <h1 className="text-lg md:text-xl font-rockwell font-bold text-slate-800 leading-none">{branchInfo?.name || "AMA BAKERY"}</h1>
+                            <p className="text-[9px] md:text-[10px] font-bold text-primary tracking-widest uppercase mt-1">Counter Dashboard</p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-lg md:text-xl font-rockwell font-bold text-slate-800 leading-none">{branchInfo?.name || "AMA BAKERY"}</h1>
-                        <p className="text-[9px] md:text-[10px] font-bold text-primary tracking-widest uppercase mt-1">Counter Dashboard</p>
+                    <div className="md:hidden">
+                        <h1 className="text-base font-bold text-slate-800 leading-none">Dashboard</h1>
                     </div>
                 </div>
 
@@ -253,33 +295,74 @@ export default function CounterDashboard() {
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>
-                        </div>
-
-                        {/* Top Products */}
-                        <div className="bg-white rounded-[2rem] border-2 border-slate-100 p-8 shadow-sm">
+                        </div>                        {/* Today's Sales Breakdown */}
+                        <div className="bg-white rounded-[2rem] border-2 border-slate-100 p-8 shadow-sm flex flex-col h-full min-h-[480px]">
                             <div className="flex items-center justify-between mb-8">
                                 <div>
-                                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Top Selling Todays</h3>
-                                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Today's best performers</p>
+                                    <h3 className="text-xl font-black text-slate-800 tracking-tight">Today's Sales</h3>
+                                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                                        {salesFilter === 'product' ? 'Performance by product' : salesFilter === 'category' ? 'Performance by category' : 'Performance by kitchen type'}
+                                    </p>
                                 </div>
-                                <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-                                    <ArrowUpRight className="h-5 w-5 text-primary" />
+                                <div className="flex items-center gap-2">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="outline" size="sm" className="rounded-xl border-2 font-bold px-3 py-1.5 text-xs gap-1.5 flex items-center bg-stone-50 border-slate-200 hover:bg-slate-100 transition-all active:scale-95">
+                                                {salesFilter === 'product' ? 'Products' : salesFilter === 'category' ? 'Categories' : 'Kitchen Types'}
+                                                <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="rounded-xl p-1.5 min-w-[140px] font-bold z-[100]">
+                                            <DropdownMenuItem onClick={() => setSalesFilter('product')} className="rounded-lg text-xs py-2 cursor-pointer">
+                                                Products
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => setSalesFilter('category')} className="rounded-lg text-xs py-2 cursor-pointer">
+                                                Categories
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => setSalesFilter('kitchentype')} className="rounded-lg text-xs py-2 cursor-pointer">
+                                                Kitchen Types
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
                             </div>
-                            <div className="space-y-4">
-                                {(dashboardData?.top_selling_items || []).slice(0, 5).map((item: any, idx: number) => (
-                                    <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-xl bg-white shadow-sm flex items-center justify-center font-black text-xs text-slate-400">
-                                                {idx + 1}
-                                            </div>
-                                            <span className="font-bold text-slate-700 group-hover:text-primary transition-colors">{item.product__name}</span>
-                                        </div>
-                                        <span className="text-[11px] font-black bg-white px-3 py-1 rounded-full text-slate-500 shadow-sm">{item.total_sold_units || item.total_orders || 0} Sold</span>
+                            <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+                                {salesLoading ? (
+                                    <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 h-full">
+                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                        <p className="text-xs font-bold uppercase tracking-widest">Loading sales...</p>
                                     </div>
-                                ))}
-                                {(!dashboardData?.top_selling_items || dashboardData.top_selling_items.length === 0) && (
-                                    <div className="py-12 text-center text-slate-400">
+                                ) : salesData.length > 0 ? (
+                                    salesData.slice(0, 5).map((item: any, idx: number) => {
+                                        let name = "Unknown";
+                                        const qty = item.qty_sold || 0;
+                                        const revenue = item.total_revenue || 0;
+
+                                        if (salesFilter === 'product') {
+                                            name = item.product__name || "Unknown Product";
+                                        } else if (salesFilter === 'category') {
+                                            name = item.product__category__name || "Unknown Category";
+                                        } else if (salesFilter === 'kitchentype') {
+                                            name = item.productcategorykitchentypename || "Unknown Kitchen Type";
+                                        }
+
+                                        return (
+                                            <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-8 w-8 rounded-xl bg-white shadow-sm flex items-center justify-center font-black text-xs text-slate-400">
+                                                        {idx + 1}
+                                                    </div>
+                                                    <span className="font-bold text-slate-700 group-hover:text-primary transition-colors line-clamp-1">{name}</span>
+                                                </div>
+                                                <div className="text-right flex flex-col items-end shrink-0">
+                                                    <span className="text-[11px] font-black bg-white px-3 py-0.5 rounded-full text-slate-500 shadow-sm border border-slate-100">{qty} Sold</span>
+                                                    <span className="text-xs font-black text-slate-900 mt-1">Rs. {Number(revenue).toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="py-20 text-center text-slate-400 flex flex-col items-center justify-center h-full">
                                         <p className="text-xs font-bold uppercase tracking-widest">No data available</p>
                                     </div>
                                 )}
@@ -365,21 +448,7 @@ export default function CounterDashboard() {
                 </div>
             </main>
 
-            {/* Mobile Footer Nav */}
-            <div className="md:hidden bg-white border-t p-4 flex items-center justify-around shrink-0">
-                <Button variant="ghost" className="flex flex-col h-auto gap-1 text-primary" onClick={() => navigate('/counter/dashboard')}>
-                    <LayoutDashboard className="h-5 w-5" />
-                    <span className="text-[10px] font-black uppercase">Home</span>
-                </Button>
-                <Button variant="ghost" className="flex flex-col h-auto gap-1 text-slate-400" onClick={() => navigate('/counter/pos')}>
-                    <Monitor className="h-5 w-5" />
-                    <span className="text-[10px] font-black uppercase">POS</span>
-                </Button>
-                <Button variant="ghost" className="flex flex-col h-auto gap-1 text-slate-400" onClick={() => navigate('/counter/orders')}>
-                    <Clock className="h-5 w-5" />
-                    <span className="text-[10px] font-black uppercase">History</span>
-                </Button>
-            </div>
+            {/* Mobile Footer Nav removed to use mobile sidebar layout instead */}
         </div>
     );
 }

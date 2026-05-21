@@ -785,13 +785,22 @@ export async function markNotificationRead(id, markAsReceived = false) {
   return data;
 }
 
-export async function fetchDailySales(branchId, date) {
+export async function fetchDailySales(branchId, date, filter = "") {
   let url = `/api/dailysales/${branchId}/`;
+  const params = new URLSearchParams();
   if (date) {
-    url += `?date=${date}`;
+    params.append("date", date);
+  }
+  if (filter) {
+    params.append("filter", filter);
+  }
+  const queryString = params.toString();
+  if (queryString) {
+    url += `?${queryString}`;
   }
   const res = await apiFetch(url);
   const data = await safeJson(res);
   if (!res.ok) throw new Error(data?.message || "Failed to fetch daily sales");
   return data;
 }
+

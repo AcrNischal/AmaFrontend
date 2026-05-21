@@ -31,7 +31,8 @@ import {
     Pencil,
     LayoutDashboard,
     IndianRupee,
-    Keyboard
+    Keyboard,
+    Menu
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -598,23 +599,36 @@ export default function CounterPOS() {
             {/* Top Header */}
             <header className="h-16 bg-white border-b px-6 pr-14 flex items-center justify-between shrink-0 z-10">
                 <div className="flex items-center gap-4">
-                    {(operator?.role === "ADMIN" || operator?.role === "BRANCH_MANAGER" || operator?.role === "SUPER_ADMIN") && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate('/admin/dashboard')}
-                            className="mr-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5"
-                            title="Back to Admin Dashboard"
-                        >
-                            <LayoutDashboard className="h-6 w-6" />
-                        </Button>
-                    )}
-                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-full flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm bg-white p-0.5">
-                        <img src="/logos/logo1white.jfif" alt="AMA BAKERY" className="h-full w-full object-cover rounded-full" />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="md:hidden rounded-xl h-10 w-10"
+                        onClick={() => window.dispatchEvent(new CustomEvent("open-counter-sidebar"))}
+                    >
+                        <Menu className="h-6 w-6 text-slate-600" />
+                    </Button>
+                    <div className="hidden md:flex items-center gap-4">
+                        {(operator?.role === "ADMIN" || operator?.role === "BRANCH_MANAGER" || operator?.role === "SUPER_ADMIN") && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => navigate('/admin/dashboard')}
+                                className="mr-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5"
+                                title="Back to Admin Dashboard"
+                            >
+                                <LayoutDashboard className="h-6 w-6" />
+                            </Button>
+                        )}
+                        <div className="h-10 w-10 md:h-12 md:w-12 rounded-full flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm bg-white p-0.5">
+                            <img src="/logos/logo1white.jfif" alt="AMA BAKERY" className="h-full w-full object-cover rounded-full" />
+                        </div>
+                        <div>
+                            <h1 className="text-lg md:text-xl font-rockwell font-bold text-slate-800 leading-none">{branchInfo?.name || "AMA BAKERY"}</h1>
+                            <p className="text-[9px] md:text-[10px] font-bold text-primary tracking-widest uppercase mt-1">POS Terminal</p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-lg md:text-xl font-rockwell font-bold text-slate-800 leading-none">{branchInfo?.name || "AMA BAKERY"}</h1>
-                        <p className="text-[9px] md:text-[10px] font-bold text-primary tracking-widest uppercase mt-1">POS Terminal</p>
+                    <div className="md:hidden">
+                        <h1 className="text-base font-bold text-slate-800 leading-none">POS Terminal</h1>
                     </div>
                 </div>
 
