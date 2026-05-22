@@ -607,39 +607,23 @@ export default function CounterPOS() {
                     >
                         <Menu className="h-6 w-6 text-slate-600" />
                     </Button>
-                    <div className="hidden md:flex items-center gap-4">
-                        {(operator?.role === "ADMIN" || operator?.role === "BRANCH_MANAGER" || operator?.role === "SUPER_ADMIN") && (
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => navigate('/admin/dashboard')}
-                                className="mr-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5"
-                                title="Back to Admin Dashboard"
-                            >
-                                <LayoutDashboard className="h-6 w-6" />
-                            </Button>
-                        )}
-                        <div className="h-10 w-10 md:h-12 md:w-12 rounded-full flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm bg-white p-0.5">
-                            <img src="/logos/logo1white.jfif" alt="AMA BAKERY" className="h-full w-full object-cover rounded-full" />
-                        </div>
-                        <div>
-                            <h1 className="text-lg md:text-xl font-rockwell font-bold text-slate-800 leading-none">{branchInfo?.name || "AMA BAKERY"}</h1>
-                            <p className="text-[9px] md:text-[10px] font-bold text-primary tracking-widest uppercase mt-1">POS Terminal</p>
-                        </div>
-                    </div>
-                    <div className="md:hidden">
-                        <h1 className="text-base font-bold text-slate-800 leading-none">POS Terminal</h1>
+                    {(operator?.role === "ADMIN" || operator?.role === "BRANCH_MANAGER" || operator?.role === "SUPER_ADMIN") && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => navigate('/admin/dashboard')}
+                            className="mr-2 rounded-xl text-slate-400 hover:text-primary hover:bg-primary/5 h-10 w-10"
+                            title="Back to Admin Dashboard"
+                        >
+                            <LayoutDashboard className="h-5 w-5" />
+                        </Button>
+                    )}
+                    <div>
+                        <h1 className="text-lg md:text-xl font-bold text-slate-800 leading-none">POS</h1>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate('/counter/dashboard')} className="rounded-xl hover:bg-slate-100 h-10 w-10 active:scale-95 transition-all shadow-sm border border-slate-100/50" title="Dashboard">
-                        <LayoutDashboard className="h-6 w-6 text-slate-600" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => navigate('/counter/orders')} className="rounded-xl hover:bg-slate-100 h-10 w-10 active:scale-95 transition-all shadow-sm border border-slate-100/50" title="Order History">
-                        <Clock className="h-6 w-6 text-slate-600" />
-                    </Button>
-                    <Separator orientation="vertical" className="h-8" />
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-auto p-2 hover:bg-slate-50 flex items-center gap-3 rounded-2xl transition-all text-left">

@@ -130,39 +130,12 @@ export default function CounterDashboard() {
                     >
                         <Menu className="h-6 w-6 text-slate-600" />
                     </Button>
-                    <div className="hidden md:flex items-center gap-4">
-                        <div className="h-10 w-10 md:h-12 md:w-12 rounded-full flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm bg-white p-0.5">
-                            <img src="/logos/logo1white.jfif" alt="AMA BAKERY" className="h-full w-full object-cover rounded-full" />
-                        </div>
-                        <div>
-                            <h1 className="text-lg md:text-xl font-rockwell font-bold text-slate-800 leading-none">{branchInfo?.name || "AMA BAKERY"}</h1>
-                            <p className="text-[9px] md:text-[10px] font-bold text-primary tracking-widest uppercase mt-1">Counter Dashboard</p>
-                        </div>
-                    </div>
-                    <div className="md:hidden">
-                        <h1 className="text-base font-bold text-slate-800 leading-none">Dashboard</h1>
+                    <div>
+                        <h1 className="text-lg md:text-xl font-bold text-slate-800 leading-none">Dashboard</h1>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <Button
-                        variant="default"
-                        onClick={() => navigate('/counter/pos')}
-                        className="hidden md:flex h-10 px-6 rounded-xl font-black bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 gap-2 transition-all active:scale-95"
-                    >
-                        <Monitor className="h-4 w-4" />
-                        Open POS
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigate('/counter/orders')}
-                        className="rounded-xl hover:bg-slate-100 h-10 w-10 active:scale-95 transition-all shadow-sm border border-slate-100/50"
-                        title="Order History"
-                    >
-                        <Clock className="h-6 w-6 text-slate-600" />
-                    </Button>
-                    <Separator orientation="vertical" className="h-8" />
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-auto p-2 hover:bg-slate-50 flex items-center gap-3 rounded-2xl transition-all text-left">
@@ -206,23 +179,23 @@ export default function CounterDashboard() {
                 <div className="max-w-7xl mx-auto space-y-8">
 
                     {/* Welcome Banner */}
-                    <div className="relative overflow-hidden bg-slate-900 rounded-[2rem] p-8 md:p-12 text-white shadow-2xl">
+                    <div className="relative overflow-hidden bg-gradient-to-br from-primary to-amber-700 rounded-[2rem] p-8 md:p-12 text-white shadow-xl shadow-primary/10">
                         <div className="relative z-10">
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center animate-pulse">
+                                <div className="h-8 w-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
                                     <TrendingUp className="h-4 w-4 text-white" />
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/80">Operational Overview</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/90">Operational Overview</span>
                             </div>
                             <h2 className="text-3xl md:text-5xl font-black mb-2 tracking-tight">Today's Summary</h2>
-                            <p className="text-slate-400 font-medium max-w-xl text-sm md:text-base">
+                            <p className="text-white/80 font-medium max-w-xl text-sm md:text-base">
                                 Welcome back, <span className="text-white font-bold">{user?.username || 'Counter'}</span>.
                                 Here's how {branchInfo?.name || 'the branch'} is performing today.
                             </p>
                         </div>
                         {/* Decorative background elements */}
-                        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 h-[400px] w-[400px] bg-primary/20 rounded-full blur-[100px]" />
-                        <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 h-[300px] w-[300px] bg-blue-500/10 rounded-full blur-[80px]" />
+                        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 h-[400px] w-[400px] bg-white/10 rounded-full blur-[100px]" />
+                        <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 h-[300px] w-[300px] bg-white/5 rounded-full blur-[80px]" />
                     </div>
 
                     {/* Stats Grid */}
